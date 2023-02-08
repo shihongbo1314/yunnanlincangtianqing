@@ -1,0 +1,1138 @@
+<template>
+    <div
+        class="menu_index"
+        style="width:100%; height:100%"
+    >
+        <!-- 左侧 -->
+        <div id="left">
+            <!-- 左侧顶部 -->
+            <div id="leftTop">
+                <!-- 显示范围 -->
+                <addr :addrListShow.sync="addrListShow" />
+
+                <!-- 雷达、自动站 -->
+                <radarMarker
+                    :map="map"
+                    @radarShowChange="radarShowChange"
+                    @radarDateChange="radarDateChange"
+                />
+            </div>
+
+            <!-- 左侧中间 -->
+            <div
+                id="leftMain"
+                :class="leftMainLeftShow?'':'leftMainLeftShow'"
+            >
+
+                <!-- 左侧中间左侧窗口 -->
+                <div
+                    id="leftMainLeft"
+                    v-if="leftMainLeftShow"
+                >
+                    <messageAlert />
+                </div>
+                <el-button
+                    class="leftMainLeftShowBtn"
+                    @click="leftMainLeftShow = !leftMainLeftShow"
+                    :icon="leftMainLeftShow ? 'el-icon-caret-left' : 'el-icon-caret-right'"
+                ></el-button>
+
+                <!-- 左侧中间右侧主要内容 -->
+                <div
+                    id="leftMainRight"
+                    v-loading="loading"
+                >
+                    <div
+                        id="map"
+                        ref="map"
+                        style="width: 100%; height: 100%; background:#fff; z-index:1;"
+                    ></div>
+                    <mapLegend v-if="radarShow" />
+                    <myLegend
+                        :list="myLegend.list"
+                        :unit="myLegend.unit"
+                    />
+                    <mapInfo
+                        v-show="riskInfoShow"
+                        :riskNum="riskNum"
+                    />
+
+                    <!--说明：雷达图数据时间左上角-->
+                    <div
+                        id="infoDiv"
+                        v-if="radarShow"
+                    >
+                        雷达组合反射率 {{radarDate}}
+                    </div>
+                </div>
+
+                <!-- 弹框 -->
+                <div
+                    id="addrListBox"
+                    v-show="addrListShow"
+                >
+                    <p><i
+                            class="el-icon-close"
+                            @click="addrListShow = false"
+                        ></i></p>
+                    <addrList
+                        :map="map"
+                        v-if="map"
+                    />
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 右侧 -->
+        <div id="right">
+            <mapLayer
+                :map="map"
+                v-if="map"
+            />
+            <mapDataOne
+                style="height: calc(100% - 10.5rem); overflow: auto;"
+                ref="stationData"
+                @stationLiveTimeChange="stationLiveTimeChange"
+                @stationShowStyleChange="stationShowStyleChange"
+                @stationShowStyleChange_time='stationShowStyleChange_time'
+                @stationShowStyleChange_my='stationShowStyleChange_my'
+                @timeBtnClick='timeBtnClick'
+                @stationShowStyleChange_Sk='stationShowStyleChange_Sk'
+                @stationLiveTimeChangeSK='stationLiveTimeChangeSK'
+                @showTypeCheckedSK='showTypeCheckedSK'
+                @showTypeCheckedYB='showTypeCheckedYB'
+            />
+        </div>
+    </div>
+</template>
+
+<script>
+// @ is an alias to /src
+import "leaflet/dist/leaflet.css";
+import * as L from "leaflet";
+import addr from "../components/index/addr.vue";
+import addrList from "../components/index/addrList.vue";
+import radarMarker from "../components/index/radarMarker.vue";
+import mapLayer from "../components/index/mapLayer.vue";
+import mapDataOne from "../components/index/mapDataOne.vue";
+import messageAlert from "../components/index/messageAlert1.vue";
+import mapLegend from "../components/index/mapLegend.vue";
+import myLegend from "../components/index/myLegend.vue";
+import mapInfo from "../components/index/mapInfo.vue";
+import {
+    getDataByParam,
+    getImageByParam,
+    getGdimg,
+    getImgListSK,
+} from "../api/maplayer";
+import { parseTime } from "@/api/date.js";
+import axios from "axios";
+export default {
+    components: {
+        addr,
+        radarMarker,
+        mapLayer,
+        mapDataOne,
+        messageAlert,
+        mapLegend,
+        mapInfo,
+        addrList,
+        myLegend,
+    },
+    data() {
+        return {
+            leftMainLeftShow: false,
+            mapMarkerBox: ["闪电", "火点监控"],
+            map: null,
+            stationLiveTime: new Date(), // 站点实况最新数据时间
+            stationShowTime: new Date(), // 站点实况默认显示时间
+            stationShowStyle: null, // 站点的显示方式
+            stationShow: false,
+
+            radarShow: false,
+            radarDate: "",
+
+            riskInfoShow: false, //右上角摄像头信息的显隐
+            riskNum: [0, 0, 0, 0, 0, 0],
+
+            addrListShow: false,
+            imgSrc: null,
+            image: null,
+            zhandianlayer: null,
+            loading: false,
+            itemP: null,
+            myLegend: {
+                list: null,
+                unit: null,
+            },
+            zhandianInfo: null,
+            mytime: new Date(),
+            wgyb: {
+                time: "",
+                type: "",
+                image: "",
+                pageIndex: 0,
+                pngList: [],
+                color: true,
+                number: false,
+            },
+            wgsk: {
+                time: "",
+                type: "",
+                image: "",
+                pageIndex: 0,
+                pngList: [],
+                color: true,
+                number: false,
+            },
+            userData: null,
+        };
+    },
+    watch: {
+        "wgyb.time"(newVal) {
+            if (newVal) {
+                this.getGdimg();
+            }
+        },
+        "wgyb.type"(newVal) {
+            if (newVal) {
+                this.getGdimg();
+            }
+        },
+    },
+    created() {
+        // 初始化界面之前获取数据
+        /*  this.initMap(); */
+    },
+    mounted() {
+        this.initMap();
+        let user = localStorage.getItem("lcqxfzjz");
+        if (user) {
+            this.userData = JSON.parse(user);
+        }
+    },
+    methods: {
+        initMap() {
+            // 初始化网格预报 预报间隔的数据时间
+            this.map = L.map(this.$refs["map"], {
+                center: [25.03284, 100.546904], // 地图中心
+                zoom: 8, //缩放比列
+                zoomControl: false, //禁用 + - 按钮
+                doubleClickZoom: false, // 禁用双击放大
+                attributionControl: false, // 移除右下角leaflet标识
+                zoomSnap: 0.01,
+            });
+            this.map.fitBounds([
+                [25.03284, 100.546904],
+                [23.073182, 98.668863],
+            ]);
+            this.imageBounds = [
+                [25.035, 100.545],
+                [23.015, 98.67],
+            ];
+        },
+        stationShowTimeChange(val) {
+            this.stationShowTime = val;
+        },
+        /* 站点实况传值-时间 */
+        stationLiveTimeChange(val) {
+            this.mytime = val;
+        },
+        raderShowTimeChange(val) {
+            this.raderShowTime = val;
+        },
+        /* 站点实况传值-要素 */
+        stationShowStyleChange(val) {
+            this.stationShowStyle = JSON.parse(JSON.stringify(val));
+            if (this.stationShowStyle.val_yl != null) {
+                this.initMaplayer(this.stationShowStyle.val_yl, "降水");
+            } else if (this.stationShowStyle.val_wd != null) {
+                this.initMaplayer(this.stationShowStyle.val_wd, "温度");
+            } else if (this.stationShowStyle.val_wind != null) {
+                this.initMaplayer(this.stationShowStyle.val_wind, "风");
+            } else if (this.stationShowStyle.val_njd != null) {
+                this.initMaplayer(this.stationShowStyle.val_njd, "能见度");
+            }
+        },
+        /* 网格预报-时间 */
+        stationShowStyleChange_time(val) {
+            this.wgyb.time = parseTime(val, "yyyy-MM-dd hh:mm:ss");
+        },
+        /* 网格预报-要素 */
+        stationShowStyleChange_my(val) {
+            this.wgyb.type = val;
+        },
+        /* 网格预报填色填值 */
+        showTypeCheckedYB(params, params1) {
+            this.wgyb.color = params;
+            this.wgyb.number = params1;
+            if (!this.wgyb.color) {
+                this.wgyb.image ? this.map.removeLayer(this.wgyb.image) : "";
+            } else {
+                this.autoimgMap();
+            }
+        },
+        /* 网格实况-要素&&时间 */
+        stationShowStyleChange_Sk(time, name) {
+            this.wgsk.time = time;
+            this.wgsk.type = name;
+            if (!this.wgyb.color) {
+                this.wgsk.image ? this.map.removeLayer(this.wgsk.image) : "";
+            } else {
+                this.getImgListSK(this.wgsk.time, this.wgsk.type);
+            }
+        },
+        /* 网格实况-手动选择时间 */
+        stationLiveTimeChangeSK(time) {
+            this.wgsk.time = time;
+            if (!this.wgyb.color) {
+                this.wgsk.image ? this.map.removeLayer(this.wgsk.image) : "";
+            } else {
+                this.getImgListSK(this.wgsk.time, this.wgsk.type);
+            }
+        },
+        /* 网格实况填色填值 */
+        showTypeCheckedSK(params, params1) {
+            this.wgsk.color = params;
+            console.log(this.wgsk.color, "实况");
+            this.wgsk.number = params1;
+            if (!this.wgyb.color) {
+                this.wgsk.image ? this.map.removeLayer(this.wgsk.image) : "";
+            } else {
+                this.getImgListSK(this.wgsk.time, this.wgsk.type);
+            }
+        },
+        radarShowChange(val) {
+            this.radarShow = val;
+        },
+        radarDateChange(val) {
+            //雷达时间改变
+            let str =
+                val.substring(0, 4) +
+                "-" +
+                val.substring(4, 6) +
+                "-" +
+                val.substring(6, 8) +
+                " " +
+                val.substring(8, 10) +
+                ":" +
+                val.substring(10, 12) +
+                ":" +
+                val.substring(12, 14);
+            this.radarDate = str;
+        },
+        riskControl(val) {
+            this.riskInfoShow = val;
+        },
+        riskNumber(val) {
+            this.riskNum = val;
+        },
+        initMaplayer(newVal, ele) {
+            if (this.zhandianlayer != null) {
+                this.zhandianlayer.clearLayers();
+                this.zhandianlayer.remove();
+                this.zhandianlayer = null;
+            }
+            this.image ? this.map.removeLayer(this.image) : "";
+            this.mytime = new Date();
+            let count, statEles, danwei, element, timeHour, statEleValueRanges;
+            let content = [];
+            let timeArr = [parseTime(this.mytime, "yyyyMMddhhmmss")];
+            if (this.stationShowStyle.gjz && !this.stationShowStyle.qyz) {
+                count = 1;
+            } else if (
+                this.stationShowStyle.qyz &&
+                !this.stationShowStyle.gjz
+            ) {
+                count = 2;
+            } else if (this.stationShowStyle.gjz && this.stationShowStyle.qyz) {
+                count = 3;
+            }
+            switch (ele) {
+                case "降水":
+                    statEles = "sum_pre_1h";
+                    switch (newVal) {
+                        case "1H":
+                            timeArr.unshift(
+                                parseTime(
+                                    new Date(
+                                        this.mytime.setHours(
+                                            this.mytime.getHours() - 1
+                                        )
+                                    ),
+                                    "yyyyMMddhhmmss"
+                                )
+                            );
+                            timeHour = "01";
+                            axios.get("./legend/PRE1.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            break;
+                        case "3H":
+                            timeArr.unshift(
+                                parseTime(
+                                    new Date(
+                                        this.mytime.setHours(
+                                            this.mytime.getHours() - 3
+                                        )
+                                    ),
+                                    "yyyyMMddhhmmss"
+                                )
+                            );
+                            axios.get("./legend/PRE3.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            timeHour = "03";
+                            break;
+                        case "6H":
+                            timeArr.unshift(
+                                parseTime(
+                                    new Date(
+                                        this.mytime.setHours(
+                                            this.mytime.getHours() - 6
+                                        )
+                                    ),
+                                    "yyyyMMddhhmmss"
+                                )
+                            );
+                            axios.get("./legend/PRE6.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            timeHour = "06";
+                            break;
+                        case "12H":
+                            timeArr.unshift(
+                                parseTime(
+                                    new Date(
+                                        this.mytime.setHours(
+                                            this.mytime.getHours() - 12
+                                        )
+                                    ),
+                                    "yyyyMMddhhmmss"
+                                )
+                            );
+                            axios.get("./legend/PRE12.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            timeHour = "12";
+                            break;
+                        case "24H":
+                            timeArr.unshift(
+                                parseTime(
+                                    new Date(
+                                        this.mytime.setHours(
+                                            this.mytime.getHours() - 24
+                                        )
+                                    ),
+                                    "yyyyMMddhhmmss"
+                                )
+                            );
+                            axios.get("./legend/PRE24.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            timeHour = "24";
+                            break;
+                        default:
+                            break;
+                    }
+                    danwei = "mm";
+                    this.myLegend.unit = ele + danwei;
+                    element = "HOR";
+                    statEleValueRanges = "sum_pre_1h";
+
+                    break;
+                case "温度":
+                    if (newVal == "实时") {
+                        statEles = "max_tem_max";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 1
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "01";
+                        statEleValueRanges = "max_tem_max";
+                    } else if (newVal == "最高24H") {
+                        statEles = "max_tem_max";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 24
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        statEleValueRanges = "max_tem_max";
+                        timeHour = "24";
+                    } else if (newVal == "最低24H") {
+                        statEles = "min_TEM_Min";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 24
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "24";
+                        statEleValueRanges = "min_TEM_Min";
+                    }
+                    axios.get("./legend/TMP.json").then((res) => {
+                        res.data.colorScale.map((item) => {
+                            item.value = Number(item.value - 273.15).toFixed();
+                        });
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    danwei = "°C";
+                    this.myLegend.unit = ele + danwei;
+                    element = "TMP";
+                    break;
+                case "风":
+                    if (newVal == "实时") {
+                        statEles = "max_win_s_avg_2mi";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 1
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "01";
+                        statEleValueRanges = "max_win_s_avg_2mi";
+                    } else if (newVal == "极大1H") {
+                        statEles = "max_win_s_inst_max";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 1
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "01";
+                        statEleValueRanges = "max_win_s_inst_max";
+                    } else if (newVal == "极大24H") {
+                        statEles = "max_win_s_inst_max";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 24
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "24";
+                        statEleValueRanges = "max_win_s_inst_max";
+                    }
+                    axios.get("./legend/WIN.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    danwei = "m/s";
+                    this.myLegend.unit = ele + danwei;
+                    element = "WIN";
+                    break;
+                case "能见度":
+                    if (newVal == "实时") {
+                        statEles = "max_VIS";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 1
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "01";
+                        statEleValueRanges = "max_VIS";
+                    } else if (newVal == "最低1H") {
+                        statEles = "min_vis_min";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 1
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "01";
+                        statEleValueRanges = "min_vis_min";
+                    } else if (newVal == "最低24H") {
+                        statEles = "min_vis_min";
+                        timeArr.unshift(
+                            parseTime(
+                                new Date(
+                                    this.stationLiveTime.setHours(
+                                        this.stationLiveTime.getHours() - 24
+                                    )
+                                ),
+                                "yyyyMMddhhmmss"
+                            )
+                        );
+                        timeHour = "24";
+                        statEleValueRanges = "min_vis_min";
+                    }
+                    axios.get("./legend/VIS.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    danwei = "m";
+                    this.myLegend.unit = ele + danwei;
+                    element = "VIS";
+                    break;
+                default:
+                    break;
+            }
+            getDataByParam({
+                siteGroup: count,
+                interfaceId: "statSurfEleByStaID",
+                dataCode: "SURF_CHN_MUL_HOR",
+                timeRange: JSON.stringify(timeArr.map((item) => item - 0)),
+                elements:
+                    "City,Country,NetCode,Station_Name,Lat,Lon,Station_Id_C",
+                statEles: statEles,
+                statEleValueRanges: `${statEleValueRanges}:(,999998)`,
+            }).then((res) => {
+                if (res.data.s == 0) {
+                    this.zhandianlayer = L.layerGroup();
+                    this.zhandianInfo = res.data.d.data;
+                    this.zhandianInfo.map((item) => {
+                        content.push(item[4] + "-" + item[5] + "-" + item[7]);
+                        if (
+                            this.stationShowStyle.name &&
+                            this.stationShowStyle.site
+                        ) {
+                            L.marker([item[4], item[5]], {
+                                icon: L.divIcon({
+                                    html:
+                                        "<div style='display: flex;flex-direction: column;align-items: center;'>" +
+                                        `<span style='display: inline-block;width:60px;text-align: center;'>${item[3]}</span>` +
+                                        `<span style='display: inline-block;'>${item[6]}</span>` +
+                                        `<span style='display: inline-block;'>${item[7]}${danwei}</span>` +
+                                        "</div>",
+                                    className: "mapShowCityName",
+                                    iconSize: [8, 8],
+                                    iconAnchor: [8, 8],
+                                }),
+                            }).addTo(this.zhandianlayer);
+                        } else if (
+                            this.stationShowStyle.name &&
+                            !this.stationShowStyle.site
+                        ) {
+                            L.marker([item[4], item[5]], {
+                                icon: L.divIcon({
+                                    html:
+                                        "<div style='display: flex;flex-direction: column;align-items: center;'>" +
+                                        `<span style='display: inline-block;width:60px;text-align: center;'>${item[3]}</span>` +
+                                        `<span style='display: inline-block;'>${item[7]}${danwei}</span>` +
+                                        "</div>",
+                                    className: "mapShowCityName",
+                                    iconSize: [8, 8],
+                                    iconAnchor: [8, 8],
+                                }),
+                            }).addTo(this.zhandianlayer);
+                        } else if (
+                            this.stationShowStyle.site &&
+                            !this.stationShowStyle.name
+                        ) {
+                            L.marker([item[4], item[5]], {
+                                icon: L.divIcon({
+                                    html:
+                                        "<div style='display: flex;flex-direction: column;align-items: center;'>" +
+                                        `<span style='display: inline-block;'>${item[6]}</span>` +
+                                        `<span style='display: inline-block;'>${item[7]}${danwei}</span>` +
+                                        "</div>",
+                                    className: "mapShowCityName",
+                                    iconSize: [8, 8],
+                                    iconAnchor: [8, 8],
+                                }),
+                            }).addTo(this.zhandianlayer);
+                        } else if (!this.stationShowStyle.name) {
+                            L.marker([item[4], item[5]], {
+                                icon: L.divIcon({
+                                    html:
+                                        "<div style='display: flex;flex-direction: column;align-items: center;'>" +
+                                        `<span style='display: inline-block;'>${item[6]}</span>` +
+                                        `<span style='display: inline-block;'>${item[7]}${danwei}</span>` +
+                                        "</div>",
+                                    className: "mapShowCityName",
+                                    iconSize: [8, 8],
+                                    iconAnchor: [8, 8],
+                                }),
+                            }).addTo(this.zhandianlayer);
+                        } else if (!this.stationShowStyle.site) {
+                            L.marker([item[4], item[5]], {
+                                icon: L.divIcon({
+                                    html:
+                                        "<div style='display: flex;flex-direction: column;align-items: center;'>" +
+                                        `<span style='display: inline-block;width:60px;text-align: center;'>${item[3]}</span>` +
+                                        `<span style='display: inline-block;'>${item[7]}${danwei}</span>` +
+                                        "</div>",
+                                    className: "mapShowCityName",
+                                    iconSize: [8, 8],
+                                    iconAnchor: [8, 8],
+                                }),
+                            }).addTo(this.zhandianlayer);
+                        }
+                    });
+                    this.zhandianlayer.addTo(this.map);
+                    if (
+                        this.zhandianInfo.every(
+                            (item) =>
+                                item[7] == 0 ||
+                                this.stationShowStyle.image == false
+                        )
+                    ) {
+                    } else {
+                        this.initMaplayer2(
+                            element,
+                            timeHour,
+                            content.toString()
+                        );
+                    }
+                } else {
+                    this.$message.error("暂无数据");
+                }
+            });
+        },
+        initMaplayer2(element, hour, content) {
+            this.wgsk.image ? this.map.removeLayer(this.wgsk.image) : "";
+            this.wgyb.image ? this.map.removeLayer(this.wgyb.image) : "";
+            this.image ? this.map.removeLayer(this.image) : "";
+            this.loading = true;
+            getImageByParam({
+                element: element,
+                hour: hour,
+                content: content,
+                regionId: this.userData.roleInfo.id,
+            }).then((res) => {
+                var imageUrl =
+                    "http://172.24.97.251:8082/siteImg/" + res.data.d;
+
+                this.image = L.imageOverlay(imageUrl, this.imageBounds).addTo(
+                    this.map
+                );
+                this.loading = false;
+            });
+        },
+        timeBtnClick(val) {
+            if (val) {
+                this.wgyb.pageIndex = val;
+                if (!this.wgyb.color) {
+                    this.wgyb.image
+                        ? this.map.removeLayer(this.wgyb.image)
+                        : "";
+                } else {
+                    this.autoimgMap();
+                }
+            }
+        },
+        /* 获得格点图片数据 */
+        getGdimg() {
+            this.loading = true;
+            let type = null;
+            let inter = null;
+            this.wgyb.image ? this.map.removeLayer(this.wgyb.image) : "";
+            var danwei;
+            if (this.wgyb.type.indexOf("降水") > 0) {
+                axios.get("./legend/PRE1.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "mm";
+                this.myLegend.unit = "降水" + danwei;
+            } else if (this.wgyb.type.indexOf("气温") > 0) {
+                axios.get("./legend/TMP.json").then((res) => {
+                    res.data.colorScale.map((item) => {
+                        item.value = Number(item.value - 273.15).toFixed();
+                    });
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "°C";
+                this.myLegend.unit = "气温" + danwei;
+            } else if (this.wgyb.type.indexOf("风") > 0) {
+                axios.get("./legend/WIN.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "m/s";
+                this.myLegend.unit = "风" + danwei;
+            } else if (this.wgyb.type.indexOf("能见度") > 0) {
+                axios.get("./legend/VIS.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "m";
+                this.myLegend.unit = "能见度" + danwei;
+            } else if (this.wgyb.type.indexOf("湿度") > 0) {
+                axios.get("./legend/ERH.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "%";
+                this.myLegend.unit = "湿度" + danwei;
+            }
+
+            switch (this.wgyb.type.substring(0, 2)) {
+                case "1h":
+                    inter = 1;
+                    break;
+                case "3h":
+                    inter = 3;
+                    break;
+                case "6h":
+                    inter = 6;
+                    break;
+                case "12":
+                    inter = 12;
+                    break;
+                case "24":
+                    inter = 24;
+                    break;
+                default:
+                    break;
+            }
+            switch (this.wgyb.type) {
+                case "1h降水":
+                    type = "ER01";
+                    break;
+                case "3h降水":
+                    type = "ER03";
+                    break;
+                case "6h降水":
+                    type = "ER06";
+                    break;
+                case "12h降水":
+                    type = "ER12";
+                    break;
+                case "24h降水":
+                    type = "ER24";
+                    break;
+                case "1h气温":
+                    type = "TMP01";
+                    break;
+                case "3h气温":
+                    type = "TMP";
+                    break;
+                case "24h最低气温":
+                    type = "TMIN";
+                    break;
+                case "24h最高气温":
+                    type = "TMAX";
+                    break;
+                case "3h风速":
+                    type = "EDA10";
+                    break;
+                case "3h能见度":
+                    type = "VIS";
+                    break;
+                case "1h湿度":
+                    type = "ERH01";
+                    break;
+                case "3h湿度":
+                    type = "ERH";
+                    break;
+                case "24h最小湿度":
+                    type = "ERHI";
+                    break;
+                case "24h最大湿度":
+                    type = "ERHA";
+                    break;
+                default:
+                    break;
+            }
+            getGdimg({
+                qbTime: this.wgyb.time,
+                inter: inter,
+                element: type,
+            }).then((res) => {
+                if (res.data.state == 204) {
+                    this.wgsk.image
+                        ? this.map.removeLayer(this.wgsk.image)
+                        : "";
+                    this.wgyb.image
+                        ? this.map.removeLayer(this.wgyb.image)
+                        : "";
+                    this.image ? this.map.removeLayer(this.image) : "";
+                    this.loading = false;
+                } else {
+                    this.wgyb.pngList = res.data.records;
+                    this.autoimgMap();
+                    
+                }
+            });
+        },
+        autoimgMap() {
+            this.wgsk.image ? this.map.removeLayer(this.wgsk.image) : "";
+            this.wgyb.image ? this.map.removeLayer(this.wgyb.image) : "";
+            this.image ? this.map.removeLayer(this.image) : "";
+            var imageUrl =
+                    "http://172.24.97.251:8082/" +
+                    "grid_yb/" +
+                    this.wgyb.pngList[this.wgyb.pageIndex].year +
+                    "/" +
+                    this.wgyb.pngList[this.wgyb.pageIndex].month +
+                    "/" +
+                    this.wgyb.pngList[this.wgyb.pageIndex].day +
+                    "/" +
+                    this.wgyb.pngList[this.wgyb.pageIndex].pngName,
+                zIndex = -99;
+            this.wgyb.image = L.imageOverlay(
+                imageUrl,
+                this.imageBounds,
+                zIndex
+            ).addTo(this.map);
+            this.loading = false;
+        },
+        /* 获得格点实况图片信息 */
+        getImgListSK(time, name) {
+            this.loading = true;
+            this.wgsk.image ? this.map.removeLayer(this.wgsk.image) : "";
+            this.wgyb.image ? this.map.removeLayer(this.wgyb.image) : "";
+            this.image ? this.map.removeLayer(this.image) : "";
+            var danwei;
+            if (name == "ER01") {
+                axios.get("./legend/PRE1.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "mm";
+                this.myLegend.unit = "降水" + danwei;
+            } else if (name == "TAIR") {
+                axios.get("./legend/TMP.json").then((res) => {
+                    res.data.colorScale.map((item) => {
+                        item.value = Number(item.value - 273.15).toFixed();
+                    });
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "°C";
+                this.myLegend.unit = "温度" + danwei;
+            } else if (name == "WIND") {
+                axios.get("./legend/WIN.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "m/s";
+                this.myLegend.unit = "风" + danwei;
+            } else if (name == "能见度") {
+                axios.get("./legend/VIS.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "m";
+                this.myLegend.unit = "能见度" + danwei;
+            } else if (name == "QAIR") {
+                axios.get("./legend/ERH.json").then((res) => {
+                    this.myLegend.list = res.data.colorScale;
+                });
+                danwei = "%";
+                this.myLegend.unit = "湿度" + danwei;
+            }
+            getImgListSK({
+                qbTime: time,
+            }).then((res) => {
+                if (res.data.state == 200) {
+                    res.data.records.map((item) => {
+                        if (item.element == name) {
+                            if (this.wgsk.color) {
+                                var imageUrl =
+                                    "http://172.24.97.251:8082/" +
+                                    "grid_sk/" +
+                                    item.year +
+                                    "/" +
+                                    item.month +
+                                    "/" +
+                                    item.day +
+                                    "/" +
+                                    item.pngName;
+                                var zIndex = -99;
+                                this.wgsk.image = L.imageOverlay(
+                                    imageUrl,
+                                    this.imageBounds,
+                                    zIndex
+                                ).addTo(this.map);
+                            } else {
+                                this.wgsk.image
+                                    ? this.map.removeLayer(this.wgsk.image)
+                                    : "";
+                            }
+                        }
+                    });
+                    this.loading = false;
+                }
+            });
+        },
+    },
+};
+</script>
+<style scoped>
+#left {
+    width: calc(100% - 26.875rem);
+    height: 100%;
+    overflow: hidden;
+    display: inline-block;
+}
+#right {
+    width: 26.875rem;
+    height: 100%;
+    overflow: auto;
+    display: inline-block;
+    background: #f5f6f7;
+}
+#leftTop {
+    width: 100%;
+    height: 40px;
+    overflow: hidden;
+    border-bottom: 0.0625rem solid #adb3bb;
+}
+#leftMain {
+    width: 100%;
+    height: calc(100% - 40px);
+    overflow: hidden;
+    display: inline-block;
+    position: relative;
+}
+#leftMainLeft {
+    width: 21.875rem;
+    height: 100%;
+    overflow: auto;
+    display: inline-block;
+}
+#leftMainRight {
+    width: calc(100% - 21.875rem);
+    height: 100%;
+    overflow: hidden;
+    display: inline-block;
+    border-right: 0.0625rem solid #adb3bb;
+    border-left: 0.0625rem solid #adb3bb;
+    position: relative;
+}
+.leftMainLeftShowBtn {
+    position: absolute;
+    top: 20%;
+    left: 21.9375rem;
+    border-left: none;
+    border-radius: 0 0.25rem 0.25rem 0;
+    width: 1.25rem;
+    padding: 0.625rem 0;
+    border-color: #adb3bb;
+    z-index: 999;
+}
+#leftMain.leftMainLeftShow .leftMainLeftShowBtn {
+    left: 0;
+}
+#leftMain.leftMainLeftShow #leftMainRight {
+    border-left: none;
+    width: 100%;
+}
+
+#leftTop > div {
+    height: 100%;
+    display: inline-block;
+    vertical-align: top;
+}
+#leftTop .mapMarkerBox {
+    width: 13.4375rem;
+}
+#leftTop .mapMarkerBox >>> label {
+    width: 50%;
+    display: inline-block;
+    margin: 0;
+    padding: 0.25rem 0 0.25rem 0.625rem;
+}
+#leftTop >>> .radarMarker {
+    width: calc(100% - 350px);
+    border-right: 1px solid #adb3bb;
+    border-left: 1px solid #adb3bb;
+}
+#map >>> .mapProvinceName {
+    color: #aaa;
+    font-size: 1.125rem;
+}
+#map >>> .mapCountyName {
+    color: #ccc;
+    font-size: 0.75rem;
+}
+#map >>> .mapCityName {
+    color: #3e87f4;
+}
+#map >>> .mapShowCityName img {
+    width: 24px;
+    height: 24px;
+}
+#map >>> .mapCityName span {
+    font-size: 0.875rem !important;
+    position: absolute;
+    top: 50%;
+    white-space: nowrap;
+    left: 50%;
+    transform: translate(-50%, -1.125rem);
+}
+
+#map >>> .mapCityName:before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: #3e87f4;
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 6.1875rem;
+}
+#leftMainRight >>> .legend {
+    position: absolute;
+    bottom: 0;
+    right: 100px;
+    z-index: 2;
+}
+#leftMainRight >>> .info {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 2;
+}
+
+/**切换城市弹框 */
+#addrListBox {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #fff;
+    width: 21.875rem;
+    z-index: 9999;
+    box-shadow: 0 0.625rem 0.625rem -0.625rem #aaa;
+}
+#addrListBox > p {
+    margin: 0;
+    background: #dcecff;
+    text-align: right;
+    padding: 0.1875rem 0.625rem;
+    font-size: 1.25rem;
+}
+#addrListBox > p > i {
+    cursor: pointer;
+}
+#addrListBox > p > i:hover {
+    color: #3e87f4;
+}
+/**雷达图文字说明 */
+#infoDiv {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 999;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px 8px;
+}
+</style>

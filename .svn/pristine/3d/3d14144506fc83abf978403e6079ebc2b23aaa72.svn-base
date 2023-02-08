@@ -1,0 +1,785 @@
+<template>
+<!-- 分组管理 -->
+    <div class="right">
+        <div class="top">
+            <el-breadcrumb separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item>作业管理</el-breadcrumb-item>
+                <el-breadcrumb-item>产品管理</el-breadcrumb-item>
+                <el-breadcrumb-item>分组管理</el-breadcrumb-item>
+            </el-breadcrumb>
+        </div>
+
+        <div class="content">
+            <div
+                class="content_one"
+                style="overflow: auto;height:calc(100% - 80px)"
+            >
+                <div class="content_top">
+                    <span style="margin:0 8px 0 24px">书签名称</span>
+                    <el-input
+                        v-model="input"
+                        placeholder="请输入"
+                    ></el-input>
+                    <span style="margin:0 8px 0 40px">创建人</span>
+                    <el-input
+                        v-model="input"
+                        placeholder="请输入"
+                    ></el-input>
+
+                    <el-button
+                        type="primary"
+                        style="margin-right:80px;margin-left:40px"
+                    >搜索</el-button>
+                    <el-button
+                        type="primary"
+                        icon="el-icon-plus"
+                        @click="dialogVisible = true"
+                    >新增书签</el-button>
+                </div>
+
+                <el-dialog
+                    title="新增书签"
+                    :visible.sync="dialogVisible"
+                    width="320px"
+                    style="padding-top:19vh;"
+                    close-on-click-modal
+                >
+                    <div class="NewBookmarks">
+                        <el-checkbox-group v-model="checkboxGroup1">
+                            <el-checkbox-button>
+                                <svg-icon
+                                    iconClass="书签-数据类-2"
+                                    style="font-size:40px"
+                                />
+                                <span>数据类书签</span>
+                            </el-checkbox-button>
+                        </el-checkbox-group>
+                        <el-checkbox-group v-model="checkboxGroup2">
+                            <el-checkbox-button>
+                                <svg-icon
+                                    iconClass="书签-表格类-2"
+                                    style="font-size:40px"
+                                /><span>表格类书签</span>
+                            </el-checkbox-button>
+                        </el-checkbox-group>
+                        <el-checkbox-group
+                            v-model="checkboxGroup3"
+                            style="margin-top:16px;"
+                        >
+                            <el-checkbox-button>
+                                <svg-icon
+                                    iconClass="书签-图片类-2"
+                                    style="font-size:40px"
+                                /><span>图片类书签</span>
+                            </el-checkbox-button>
+                        </el-checkbox-group>
+                        <el-checkbox-group v-model="checkboxGroup4">
+                            <el-checkbox-button style="margin-top:16px">
+                                <svg-icon
+                                    iconClass="书签- GIF类-2"
+                                    style="font-size:40px"
+                                /><span style="width:60px">GIF类书签</span>
+                            </el-checkbox-button>
+                        </el-checkbox-group>
+                    </div>
+                    <div>
+
+                    </div>
+                    <span
+                        slot="footer"
+                        class="dialog-footer"
+                    >
+                        <el-button @click="dialogVisible = false">取 消</el-button>
+                        <el-button
+                            type="primary"
+                            @click="dialogVisible = false"
+                        >确 定</el-button>
+                    </span>
+                </el-dialog>
+
+                <div class="table">
+                    <el-table
+                        :data="tableData"
+                        stripe
+                        style="width: 100%"
+                    >
+                        <el-table-column
+                            prop="date"
+                            label="序号"
+                            width="150"
+                            align="center"
+                        >
+                        </el-table-column>
+                        <el-table-column
+                            prop="name"
+                            label="分组名称"
+                            width="374"
+                        >
+                        </el-table-column>
+                        <el-table-column
+                            prop="address"
+                            label="包含模板个数"
+                            align="center"
+                        >
+                        </el-table-column>
+                        </el-table-column>
+                        <el-table-column
+                            prop="cjr"
+                            label="创建人"
+                            align="center"
+                        >
+                        </el-table-column>
+                        <el-table-column
+                            prop="sj"
+                            label="最近更新时间"
+                            align="center"
+                        >
+                        </el-table-column>
+                        <el-table-column
+                            label="操作"
+                            align="center"
+                        >
+                            <template slot-scope="scope">
+                                <el-button
+                                    type="text"
+                                    size="small"
+                                >编辑</el-button>
+                                <span class="gun">丨</span>
+                                <el-button
+                                    @click.native.prevent="deleteRow(scope.$index, tableData)"
+                                    type="text"
+                                    size="small"
+                                >
+                                    删除
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div class="bottom">
+                        <el-pagination
+                            layout="prev, pager, next"
+                            :total="90"
+                        >
+                        </el-pagination>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</template>
+<script>
+export default {
+    data() {
+        return {
+            muban: false,
+            xinzen: false,
+            checkboxGroup1: [],
+            checkboxGroup2: [],
+            checkboxGroup3: [],
+            checkboxGroup4: [],
+            checkboxGroup5: [],
+            checkboxGroup6: [],
+            input: "",
+            region: "",
+            textarea2: "",
+            radio: 8,
+            radio1: "",
+            options: [
+                {
+                    value: "选项1",
+                    label: "类型1",
+                },
+                {
+                    value: "选项2",
+                    label: "类型2",
+                },
+                {
+                    value: "选项3",
+                    label: "类型3",
+                },
+                {
+                    value: "选项4",
+                    label: "类型4",
+                },
+            ],
+            value: "",
+            tableData: [
+                {
+                    date: "1",
+                    name: "书签名称2",
+                    address: "SJ123456789",
+                    lx: "数据类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "2",
+                    name: "书签名称书签名称3",
+                    address: "GM56455554",
+                    lx: "图片类",
+                    cjr: "李四",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "3",
+                    name: "书签名称书签名称书签名称1",
+                    address: "BG955599955",
+                    lx: "表格类",
+                    cjr: "王五",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "4",
+                    name: "书签名称4",
+                    address: "FP456454566",
+                    lx: "GIF图类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "5",
+                    name: "书签名称2",
+                    address: "SJ123456789",
+                    lx: "数据类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "6",
+                    name: "书签名称书签名称3",
+                    address: "GM56455554",
+                    lx: "图片类",
+                    cjr: "李四",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "7",
+                    name: "书签名称书签名称书签名称1",
+                    address: "BG955599955",
+                    lx: "表格类",
+                    cjr: "王五",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "8",
+                    name: "书签名称4",
+                    address: "FP456454566",
+                    lx: "GIF图类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "9",
+                    name: "书签名称2",
+                    address: "SJ123456789",
+                    lx: "数据类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "10",
+                    name: "书签名称书签名称3",
+                    address: "GM56455554",
+                    lx: "图片类",
+                    cjr: "李四",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "11",
+                    name: "书签名称书签名称书签名称1",
+                    address: "BG955599955",
+                    lx: "表格类",
+                    cjr: "王五",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "12",
+                    name: "书签名称4",
+                    address: "FP456454566",
+                    lx: "GIF图类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "13",
+                    name: "书签名称2",
+                    address: "SJ123456789",
+                    lx: "数据类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "14",
+                    name: "书签名称书签名称3",
+                    address: "GM56455554",
+                    lx: "图片类",
+                    cjr: "李四",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "15",
+                    name: "书签名称书签名称书签名称1",
+                    address: "BG955599955",
+                    lx: "表格类",
+                    cjr: "王五",
+                    sj: "2022-01-31 21:09:20",
+                },
+                {
+                    date: "16",
+                    name: "书签名称4",
+                    address: "FP456454566",
+                    lx: "GIF图类",
+                    cjr: "张三",
+                    sj: "2022-01-31 21:09:20",
+                },
+            ],
+            dialogVisible: false,
+            newTemplate: false,
+            activeName: "first",
+        };
+    },
+    created() {
+        // 初始化界面之前获取数据
+    },
+    mounted() {
+        // 界面显示完成后调用方法
+    },
+    methods: {
+        handleOpen(key, keyPath) {
+            console.log(key, keyPath);
+        },
+        handleClose(key, keyPath) {
+            console.log(key, keyPath);
+        },
+        deleteRow(index, rows) {
+            rows.splice(index, 1);
+        },
+        handleClick(tab, event) {
+            console.log(tab, event);
+        },
+    },
+};
+</script>
+
+<style lang="less" scoped>
+.right {
+    width: calc(100% - 280px);
+    height: 100%;
+    float: left;
+    position: relative;
+    top: 0;
+    left: 282px;
+    .top {
+        height: 48px;
+        background-color: #ffffff;
+        .el-breadcrumb {
+            width: 240px;
+            height: 48px;
+            font-size: 16px;
+            letter-spacing: 0;
+            text-align: justify;
+            line-height: 48px;
+            font-weight: 400;
+            margin: 0 0 12px 16px;
+            /deep/.el-breadcrumb__inner {
+                color: #2d5a9d;
+            }
+            /deep/.el-breadcrumb__separator[class*="icon"] {
+                margin: 0 3px;
+                font-weight: 400;
+                color: #2d5a9d;
+            }
+        }
+    }
+    // 新增书签  标签页样式
+    /deep/.el-tabs__nav-scroll {
+        margin: 10px 0 0 24px;
+        .el-tabs__item {
+            width: 100px;
+            font-size: 16px;
+            color: #adb3bb;
+            text-align: center;
+            padding: 0;
+        }
+        .el-tabs__item.is-active {
+            color: #409eff;
+            font-weight: 600;
+        }
+    }
+    /deep/.el-tabs__header {
+        margin-bottom: 24px;
+    }
+    /deep/.el-tabs__nav-wrap::after {
+        left: 24px;
+    }
+    .el-tab-pane {
+        display: flex;
+        .shuju {
+            width: 960px;
+            height: 860px;
+            margin-left: 24px;
+            margin-right: 24px;
+            margin-bottom: 27px;
+            background-color: #f5f6f7;
+            overflow: auto;
+            p {
+                height: 24px;
+                font-size: 16px;
+                color: #3e87f4;
+                font-weight: 600;
+                margin-left: 20px;
+                margin-top: 24px;
+            }
+            /deep/.el-form-item--small .el-form-item__label {
+                font-size: 16px;
+                margin-left: 24px;
+                color: #333333;
+                text-align: right;
+            }
+            /deep/.el-input--small .el-input__inner {
+                height: 36px;
+                font-size: 16px;
+                padding-left: 10px;
+            }
+            /deep/.el-form-item--small .el-form-item__content {
+                display: flex;
+            }
+            .el-button {
+                width: 160px;
+                height: 36px;
+                background: #3e87f4;
+                border-radius: 4px;
+            }
+            .el-radio-group {
+                margin-top: 10px;
+                font-size: 16px;
+            }
+            .xuanze {
+                width: 48px;
+                height: 24px;
+                background-color: #ffffff00;
+                text-align: center;
+                border: none;
+                font-size: 16px;
+                color: #333333;
+                margin-right: 24px;
+            }
+            /deep/ .el-radio {
+                margin: 0 15px;
+                .el-radio__inner {
+                    width: 16px;
+                    height: 16px;
+                }
+                .el-radio__label,
+                .el-checkbox__label {
+                    font-size: 16px;
+                }
+            }
+
+            .quyu {
+                height: 72px;
+                border: 1px solid rgba(214, 217, 221, 1);
+                border-radius: 4px;
+                background-color: #ffffff;
+                margin-top: 8px;
+                .sanjiao {
+                    width: 0;
+                    height: 0;
+                    border-left: 4px solid transparent;
+                    border-right: 4px solid transparent;
+                    border-bottom: 4px solid #d6d9dd;
+                    position: relative;
+                    top: -4px;
+                    left: 106px;
+                }
+                /deep/.el-checkbox-group {
+                    .el-checkbox-button__inner {
+                        border: none;
+                        width: 48px;
+                        height: 24px;
+                        font-size: 16px;
+                        color: #333333;
+                        border: none;
+                        background-color: #ffffff;
+                        margin: 4px 27px 0 0;
+                    }
+                    .el-checkbox-button.is-checked .el-checkbox-button__inner {
+                        color: #2672fd;
+                        font-size: 16px;
+                        font-weight: 600;
+                        background: none;
+                        box-shadow: none;
+                    }
+                }
+            }
+            .table_type {
+                width: 912px;
+                height: 216px;
+                background: #ffffff;
+                border-radius: 4px;
+                margin-left: 24px;
+                .table_type_one {
+                    height: 216px;
+                    overflow-x: scroll;
+                }
+                /deep/ .el-radio--small.is-bordered {
+                    width: 320px;
+                    height: 200px;
+                    background: #d8dfe5;
+                    margin: 8px 0 8px 8px;
+                }
+            }
+        }
+        .yulan {
+            width: 608px;
+            height: 860px;
+            margin-right: 24px;
+            background: #ffffff;
+            border: 1px solid rgba(214, 217, 221, 1);
+            .yulan_top {
+                width: 560px;
+                height: 48px;
+                background: #ff8a47;
+                text-align: center;
+                line-height: 48px;
+                font-size: 16px;
+                color: #ffffff;
+                font-weight: 500;
+                margin: 24px 24px 16px 24px;
+            }
+            span {
+                font-size: 18px;
+                color: #ff8a47;
+                letter-spacing: 0;
+                font-weight: 600;
+                margin-left: 24px;
+            }
+            .yulan_one {
+                margin: 24px 24px 0 24px;
+                border-top: 1px #d6d9dd solid;
+                /deep/ .el-form-item--small .el-form-item__label {
+                    font-size: 16px;
+                }
+                .yulan_p {
+                    height: 24px;
+                    font-size: 16px;
+                    color: #3e87f4;
+                    font-weight: 600;
+                    margin-left: -7px;
+                    margin-top: 24px;
+                }
+                .yulan_content {
+                    width: 100%;
+                    height: 480px;
+                    .el-table {
+                        border: 1px solid rgba(198, 219, 244, 1);
+                    }
+                    /deep/th {
+                        font-size: 16px;
+                        color: #333333;
+                        font-weight: 400;
+                        text-align: center;
+                        background: #dcecff;
+                        border: 1px solid rgba(214, 217, 221, 1);
+                    }
+                }
+                .el-button {
+                    width: 160px;
+                    height: 36px;
+                    background: #3e87f4;
+                    border-radius: 4px;
+                    font-weight: 500;
+                }
+            }
+        }
+    }
+
+    .content {
+        height: 100%;
+        background-color: #ffffff;
+        border-bottom: 1px #d6d9dd solid;
+        margin-top: 16px;
+        .Template {
+            /deep/ .el-dialog {
+                width: 272px;
+                height: 416px;
+            }
+        }
+        /deep/ .el-dialog {
+            height: 320px;
+            .el-dialog__header {
+                background: #3e87f4;
+                height: 32px;
+                .el-dialog__title {
+                    font-size: 16px;
+                    color: #ffffff;
+                    position: absolute;
+                    top: 4px;
+                    left: 24px;
+                    font-weight: 500;
+                }
+                .el-dialog__headerbtn {
+                    top: 6px;
+                    right: 22px;
+                    font-size: 20px;
+                }
+            }
+            .el-dialog__footer {
+                padding: 0 24px;
+                .el-button--small {
+                    width: 120px;
+                    height: 32px;
+                }
+                .el-button--small {
+                    font-size: 14px;
+                }
+                .el-button + .el-button {
+                    margin-left: 32px;
+                    font-size: 16px;
+                }
+            }
+            .el-dialog__headerbtn .el-dialog__close {
+                color: #ffffff;
+            }
+        }
+        /deep/ .el-dialog__body {
+            width: 320px;
+            padding: 16px 18px 40px 18px;
+            .NewBookmarks {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-around;
+                /deep/ .el-checkbox-button__inner:hover {
+                    color: none;
+                }
+                .el-checkbox-group {
+                    width: 128px;
+                    height: 80px;
+                    .el-checkbox-button:last-child .el-checkbox-button__inner {
+                        width: 128px;
+                        height: 80px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: space-around;
+                        color: #adb3bb;
+                        font-size: 14px;
+                        font-weight: 600;
+                        border-radius: 4px;
+                    }
+                    .el-checkbox-button.is-checked .el-checkbox-button__inner {
+                        background-color: #f0f6ff;
+                        span {
+                            color: #3e87f4;
+                        }
+                    }
+                }
+            }
+        }
+
+        .content_top {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border-bottom: 1px #d6d9dd solid;
+            span {
+                font-size: 16px;
+                color: #333333;
+                letter-spacing: 0;
+                text-align: justify;
+                font-weight: 400;
+            }
+            .el-button + .el-button {
+                margin-left: 0;
+                /deep/.el-icon-plus {
+                    width: 16px;
+                    height: 16px;
+                    font-size: 16px;
+                }
+            }
+            button {
+                width: 120px;
+                height: 36px;
+                /deep/span {
+                    width: 32px;
+                    height: 24px;
+                    font-size: 16px;
+                    color: #ffffff;
+                    letter-spacing: 0;
+                    text-align: justify;
+                    font-weight: 400;
+                }
+            }
+            .el-input--small {
+                width: 200px;
+                height: 36px;
+                font-size: 16px;
+                color: #adb3bb;
+                letter-spacing: 0;
+                text-align: justify;
+                line-height: 36px;
+                font-weight: 400;
+            }
+            /deep/.el-input .el-input__inner {
+                width: 200px;
+                height: 36px;
+                padding-left: 10px;
+                font-size: 16px;
+                line-height: 36px;
+            }
+        }
+        .table {
+            height: calc(100% - 100px);
+            margin: 16px 16px 0 16px;
+            /deep/th {
+                width: 100%;
+                height: 48px;
+                background: #e8eff8;
+                font-family: PingFangSC-Medium;
+                font-size: 16px;
+                color: #2d5a9d;
+                letter-spacing: 0;
+                font-weight: 600;
+            }
+            /deep/ tr {
+                height: 48px;
+                ont-family: PingFangSC-Regular;
+                font-size: 16px;
+                color: #333333;
+                letter-spacing: 0;
+                text-align: justify;
+                font-weight: 500;
+            }
+            .el-button--text {
+                width: 65px;
+                height: 24px;
+                font-size: 16px;
+                font-weight: 600;
+                color: #2d5a9d;
+            }
+            .el-button--text:hover {
+                color: #66b1ff;
+            }
+            .el-button + .el-button {
+                margin-left: 0;
+            }
+            .gun {
+                color: #d6d9dd;
+            }
+        }
+        .bottom {
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            /deep/.el-pagination {
+                font-family: PingFangSC-Semibold;
+                font-size: 14px;
+                color: #333333;
+                font-weight: 600;
+            }
+        }
+    }
+}
+</style>

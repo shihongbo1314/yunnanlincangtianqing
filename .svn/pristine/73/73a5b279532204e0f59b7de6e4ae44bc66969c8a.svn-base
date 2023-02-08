@@ -1,0 +1,491 @@
+<template>
+    <!-- 地理信息控制 -->
+    <div class="mapLayerConfig">
+        <div class="rightConfigTitle">
+            <span>地理信息</span>
+        </div>
+        <div class="rightConfigInfo">
+            <div>
+                <el-radio
+                    v-for="(item,i) in mapStyleData"
+                    :key="i"
+                    v-model="mapStyleIndex"
+                    :label="i"
+                >{{item.name}}</el-radio>
+            </div>
+            <div>
+                <template v-for="(item,i) in mapLayer">
+                    <el-checkbox
+                        :key="i"
+                        v-if="item.show"
+                        v-model="item.checked"
+                        @change="mapLayerChange(i)"
+                    >{{item.name}}</el-checkbox>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import * as L from "leaflet";
+import cityJSON from "../../assets/map/530900.json";
+import { getOperationInfo } from "@/api/maplayer";
+export default {
+    props: {
+        map: {
+            type: Object,
+            default: null,
+        },
+    },
+    data() {
+        return {
+            userData: null,
+            mapStyleIndex: 0,
+            mapStyleData: [
+                {
+                    icon: require("@/assets/mapStyle/vec_c.png"),
+                    iconClass: "mapStyleColorWhite",
+                    name: "白底图",
+                    layer: L.layerGroup(),
+                    shentuhao: "GS(2019)5218",
+                },
+                {
+                    icon: require("@/assets/mapStyle/ter_c.png"),
+                    name: "地形图",
+                    layer: L.layerGroup([
+                        L.tileLayer(
+                            "http://t{s}.tianditu.gov.cn/DataServer?T=ter_w&x={x}&y={y}&l={z}&tk=5599eda6504656ba246f63c15ec22a6f",
+                            {
+                                subdomains: [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "4",
+                                    "5",
+                                    "6",
+                                    "7",
+                                ],
+                            }
+                        ),
+                        L.tileLayer(
+                            "http://t{s}.tianditu.gov.cn/DataServer?T=cta_w&x={x}&y={y}&l={z}&tk=5599eda6504656ba246f63c15ec22a6f",
+                            {
+                                subdomains: [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "4",
+                                    "5",
+                                    "6",
+                                    "7",
+                                ],
+                            }
+                        ),
+                    ]),
+                    shentuhao: "GS(2019)5218",
+                },
+                {
+                    icon: require("@/assets/mapStyle/img_c.png"),
+                    name: "影像图",
+                    layer: L.layerGroup([
+                        L.tileLayer(
+                            "http://t{s}.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=5599eda6504656ba246f63c15ec22a6f",
+                            {
+                                subdomains: [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "4",
+                                    "5",
+                                    "6",
+                                    "7",
+                                ],
+                            }
+                        ),
+                        L.tileLayer(
+                            "http://t{s}.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=5599eda6504656ba246f63c15ec22a6f",
+                            {
+                                subdomains: [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "4",
+                                    "5",
+                                    "6",
+                                    "7",
+                                ],
+                            }
+                        ),
+                    ]),
+                    shentuhao: "GS(2019)5218",
+                },
+                {
+                    icon: require("@/assets/mapStyle/vec_c.png"),
+                    name: "行政图",
+                    layer: L.layerGroup([
+                        L.tileLayer(
+                            "http://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=5599eda6504656ba246f63c15ec22a6f",
+                            {
+                                subdomains: [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "4",
+                                    "5",
+                                    "6",
+                                    "7",
+                                ],
+                            }
+                        ),
+                        L.tileLayer(
+                            "http://t{s}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=5599eda6504656ba246f63c15ec22a6f",
+                            {
+                                subdomains: [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "3",
+                                    "4",
+                                    "5",
+                                    "6",
+                                    "7",
+                                ],
+                            }
+                        ),
+                    ]),
+                    shentuhao: "GS(2019)5218",
+                },
+            ],
+            mapLayer: [
+                {
+                    name: "市界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#3e87f4",
+                        fill: false,
+                        weight: 3,
+                    },
+                    levelName: "cityJSON",
+                    show: true,
+                },
+                {
+                    name: "区县界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 2,
+                    },
+                    show: true,
+                },
+                {
+                    name: "乡镇界",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    style: {
+                        zIndex: 4,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 0.5,
+                    },
+                    show: true,
+                },
+                {
+                    name: "市名",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    show: true,
+                },
+                {
+                    name: "区县名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "乡镇名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "作业点",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+            ],
+        };
+    },
+    computed: {},
+    watch: {
+        mapStyleIndex(newVal, oldVal) {
+            // 地图底图切换
+            this.mapStyleData[oldVal].layer.remove();
+            this.mapStyleChange(newVal);
+        },
+    },
+    created() {
+        let user = localStorage.getItem("lcqxfzjz");
+        if (user) {
+            this.userData = JSON.parse(user);
+            console.log(this.userData);
+            this.mapStyleChange(this.mapStyleIndex); // 地图底图初始化
+            this.init();
+        }
+    },
+    methods: {
+        init() {
+            // 根据用户级别初始化
+            if (this.userData.roleInfo.id == 2) {
+                // 县级用户
+                this.mapLayer[0].show = false; // 市界不显示
+                this.mapLayer[0].checked = false;
+                this.mapLayer[3].show = false; // 市名不显示
+                this.mapLayer[3].checked = false;
+                this.mapLayer[4].checked = true; // 区县名显示
+
+                // 加载用户所在区县的边界
+                this.$store.state.regionList.forEach((item) => {
+                    if (item.name == this.userData.userRegion.name) {
+                        let sjdata = require(`../../assets/map/${item.code}/${item.code}.json`);
+                        this.mapLayer[1].layer = L.geoJSON(sjdata, {
+                            style: () => {
+                                return this.mapLayer[1].style;
+                            },
+                            pane: "tilePane",
+                        });
+                        this.map.fitBounds(this.mapLayer[1].layer.getBounds()); // 将范围移动到区县
+
+                        // 区县名
+                        let xiangzhen = [];
+                        let countyLatlng = this.mapLayer[1].layer
+                            .getBounds()
+                            .getCenter();
+                        let countyMarker = L.marker(
+                            [countyLatlng.lat, countyLatlng.lng],
+                            {
+                                icon: L.divIcon({
+                                    className: "mapCityName",
+                                    html: "<span>" + item.name + "</span>",
+                                    iconSize: [20, 20],
+                                    iconAnchor: [10, 10],
+                                }),
+                                pane: "overlayPane",
+                            }
+                        );
+                        countyMarker.addTo(this.mapLayer[4].layer);
+
+                        //乡镇边界和乡镇名
+
+                        item.children.forEach((item1) => {
+                            let data = require(`../../assets/map/${item.code}/${item1}.json`);
+                            let layer = L.geoJSON(data, {
+                                style: () => {
+                                    return this.mapLayer[2].style;
+                                },
+                                pane: "tilePane",
+                            });
+                            layer.addTo(this.mapLayer[2].layer);
+
+                            // 乡镇名
+                            let latlng = layer.getBounds().getCenter();
+                            let marker = L.marker([latlng.lat, latlng.lng], {
+                                icon: L.divIcon({
+                                    className: "mapCountyName",
+                                    html: "<span>" + item1 + "</span>",
+                                    iconSize: [40, 40],
+                                    iconAnchor: [20, 20],
+                                }),
+                                pane: "tilePane",
+                            });
+                            marker.addTo(this.mapLayer[5].layer);
+                        });
+                        // 作业点
+                        getOperationInfo({
+                            name: '',
+                        }).then((res) => {
+                            console.log(res.data.records);
+                            if (res.data.state == 200) {
+                                res.data.records.map((item) => {
+                                    let marker = L.marker(
+                                        [item.lat, item.lng],
+                                        {
+                                            icon: L.divIcon({
+                                                className: "mapCountyName",
+                                                html:
+                                                    "<span>" +
+                                                    item.name +
+                                                    "</span>",
+                                                iconSize: [40, 40],
+                                                iconAnchor: [20, 20],
+                                            }),
+                                            pane: "tilePane",
+                                        }
+                                    );
+                                    marker.addTo(this.mapLayer[6].layer);
+                                });
+                            }
+                        });
+                    }
+                });
+            } else {
+                this.initMapLayer(); // 市级单位
+            }
+
+            // 将配置好的地图图层叠加到地图上
+            this.mapLayer.forEach((item) => {
+                if (item.checked) {
+                    item.layer.addTo(this.map);
+                }
+            });
+        },
+        initMapLayer() {
+            // 初始化地图图层
+            // 市边界
+            this.mapLayer[0].layer = L.geoJSON(cityJSON, {
+                style: () => {
+                    return this.mapLayer[0].style;
+                },
+                pane: "tilePane",
+            });
+            // 市名
+            let cityLatlng = this.mapLayer[0].layer.getBounds().getCenter();
+            let cityMarker = L.marker([cityLatlng.lat, cityLatlng.lng], {
+                icon: L.divIcon({
+                    className: "mapProvinceName",
+                    html: "<span>临沧市</span>",
+                    iconSize: [60, 80],
+                    iconAnchor: [30, 40],
+                }),
+                pane: "overlayPane",
+            });
+            cityMarker.addTo(this.mapLayer[3].layer);
+
+            this.$store.state.regionList.forEach((item) => {
+                // 区县界
+                let countyData = require(`../../assets/map/${item.code}/${item.code}.json`);
+                let countyLayer = L.geoJSON(countyData, {
+                    style: () => {
+                        return this.mapLayer[1].style;
+                    },
+                    pane: "tilePane",
+                });
+                countyLayer.addTo(this.mapLayer[1].layer);
+
+                //区县名
+                let countyLatlng = countyLayer.getBounds().getCenter();
+                let countyMarker = L.marker(
+                    [countyLatlng.lat, countyLatlng.lng],
+                    {
+                        icon: L.divIcon({
+                            className: "mapCityName",
+                            html: "<span>" + item.name + "</span>",
+                            iconSize: [40, 40],
+                            iconAnchor: [20, 20],
+                        }),
+                        pane: "tilePane",
+                    }
+                );
+                countyMarker.addTo(this.mapLayer[4].layer);
+
+                // 乡镇界
+                item.children.forEach((item1) => {
+                    let data = require(`../../assets/map/${item.code}/${item1}.json`);
+                    let layer = L.geoJSON(data, {
+                        style: () => {
+                            return this.mapLayer[2].style;
+                        },
+                        pane: "tilePane",
+                    });
+                    layer.addTo(this.mapLayer[2].layer);
+
+                    // 乡镇名
+                    let latlng = layer.getBounds().getCenter();
+                    let marker = L.marker([latlng.lat, latlng.lng], {
+                        icon: L.divIcon({
+                            className: "mapCountyName",
+                            html: "<span>" + item1 + "</span>",
+                            iconSize: [40, 40],
+                            iconAnchor: [20, 20],
+                        }),
+                        pane: "tilePane",
+                    });
+                    marker.addTo(this.mapLayer[5].layer);
+                });
+                // 作业点
+                getOperationInfo({
+                    name: '',
+                }).then((res) => {
+                    console.log(res.data.records);
+                    if (res.data.state == 200) {
+                        res.data.records.map((item) => {
+                            let marker = L.marker([item.lat, item.lng], {
+                                icon: L.divIcon({
+                                    className: "mapCountyName",
+                                    html: "<span>" + item.name + "</span>",
+                                    iconSize: [40, 40],
+                                    iconAnchor: [20, 20],
+                                }),
+                                pane: "tilePane",
+                            });
+                            marker.addTo(this.mapLayer[6].layer);
+                        });
+                    }
+                });
+            });
+        },
+        mapStyleChange(index) {
+            // 地图底图切换
+            this.mapStyleData[index].layer.addTo(this.map);
+        },
+        mapLayerChange(index) {
+            // 地图图层勾选改变
+            if (this.mapLayer[index].checked) {
+                this.mapLayer[index].layer.addTo(this.map);
+            } else {
+                this.mapLayer[index].layer.remove();
+            }
+        },
+    },
+};
+</script>
+<style scoped>
+.mapLayerConfig {
+    margin-bottom: 10px;
+}
+.rightConfigTitle {
+    background: #dcecff;
+    font-size: 16px;
+    color: #2d5a9d;
+    letter-spacing: 0;
+    text-align: justify;
+    line-height: 32px;
+    font-weight: 600;
+    padding-left: 10px;
+}
+.rightConfigInfo {
+    background: #fff;
+    padding: 10px;
+}
+.rightConfigInfo >>> label {
+    width: 70px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.rightConfigInfo >>> .el-radio__label,
+.rightConfigInfo >>> .el-checkbox__label {
+    color: #333;
+    font-weight: 400;
+}
+</style>

@@ -1,0 +1,16 @@
+{
+    "s": 1,
+    "num": null,
+    "d": [{
+        "TemMax": "34.3",
+        "site": "56951",
+        "TemMaxTime": "20200601",
+        "TemMinTime": "20201217",
+        "name": "临沧",
+        "RainMaxTime": "20200109",
+        "TemMin": "-0.4",
+        "RainMax": "105"
+    }],
+    "o": null,
+    "tokenData": null
+}

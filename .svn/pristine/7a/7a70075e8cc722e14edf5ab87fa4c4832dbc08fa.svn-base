@@ -1,0 +1,33 @@
+.el-button--primary {
+    color: #FFF;
+    background-color: #3e87f4;
+    border-color: #3e87f4;
+}
+
+.el-radio__input.is-checked+.el-radio__label ,
+.el-checkbox__input.is-checked+.el-checkbox__label {
+    color: #000;
+}
+
+.el-checkbox__input .el-checkbox__inner, .el-checkbox__input .el-checkbox__inner{
+    width: 16px;
+    height: 16px;
+}
+.el-radio__input.is-checked .el-radio__inner{
+    background-color: #3e87f4;
+    border-color: #3e87f4;
+}
+.el-checkbox__input.is-checked .el-checkbox__inner, .el-checkbox__input.is-indeterminate .el-checkbox__inner{
+    background-color: #3e87f4;
+    border-color: #3e87f4;
+    border-radius: 4px;
+}
+.el-checkbox__inner::after{
+    left: 5px;
+    top: 2px;
+}
+.el-radio__label,
+.el-checkbox__label{
+    font-size: 14px;
+    padding-left: 5px;
+}

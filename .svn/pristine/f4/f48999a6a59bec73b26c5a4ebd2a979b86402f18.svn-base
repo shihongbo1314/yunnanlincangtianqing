@@ -1,0 +1,498 @@
+<template>
+  <div class="main">
+    <el-card class="box_card">
+      <div class="top">
+        <el-row>
+          <el-col :span="20">
+            <!-- <el-radio-group v-model="radio">
+              <el-radio :label="1">日时间</el-radio>
+              <el-radio :label="2">月时间</el-radio>
+            </el-radio-group> -->
+            数据时间
+            <el-date-picker
+              v-show="radio == 1"
+              style="margin-left: 20px"
+              v-model="dateRange"
+              type="daterange"
+              size="large"
+              value-format="yyyyMMddHHmmss"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              :picker-options="pickerOptions"
+            >
+            </el-date-picker>
+            <el-date-picker
+              v-show="radio == 2"
+              style="margin-left: 20px"
+              v-model="dateRange"
+              type="monthrange"
+              value-format="yyyyMMddHHmmss"
+              start-placeholder="开始月份"
+              end-placeholder="结束月份"
+              :picker-options="pickerOptions"
+            >
+            </el-date-picker>
+            <el-select
+              v-model="postList.siteGroup"
+              style="width: 130px; margin-left: 20px"
+              size="large"
+              placeholder="请选择"
+            >
+              <el-option
+                v-for="item in options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >
+              </el-option>
+            </el-select>
+            <el-button
+              class="btn"
+              type="primary"
+              @click="getMonData()"
+              size="medium"
+              >查询</el-button
+            >
+          </el-col>
+          <el-col :span="4" style="text-align: right">
+            <el-button
+              class="btn"
+              @click="importClick()"
+              type="success"
+              size="medium"
+              >下载</el-button
+            >
+          </el-col>
+        </el-row>
+      </div>
+      <div class="bottom">
+        <el-table
+          v-loading="loading"
+          :data="tableData"
+          id="daochu"
+          stripe
+          border
+          style="width: 100%"
+          class="commonTable"
+        >
+          <el-table-column prop="sid" label="站点编号" align="center">
+          </el-table-column>
+          <el-table-column prop="name" label="站点名称" align="center">
+          </el-table-column>
+          <el-table-column prop="DayCount" label="天数总数" align="center">
+          </el-table-column>
+          <el-table-column prop="rain1" sortable align="center">
+            <template slot="header">
+              <div>小雨</div>
+              <div>次数/概率</div>
+            </template>
+            <template slot-scope="scope"> {{ scope.row.rain1 }}% </template>
+          </el-table-column>
+          <el-table-column prop="rain2" sortable align="center">
+            <template slot="header">
+              <div>中雨</div>
+              <div>次数/概率</div>
+            </template>
+            <template slot-scope="scope"> {{ scope.row.rain2 }}% </template>
+          </el-table-column>
+          <el-table-column prop="rain3" sortable align="center">
+            <template slot="header">
+              <div>大雨</div>
+              <div>次数/概率</div>
+            </template>
+            <template slot-scope="scope"> {{ scope.row.rain3 }}% </template>
+          </el-table-column>
+          <el-table-column prop="rain4" sortable align="center">
+            <template slot="header">
+              <div>暴雨</div>
+              <div>次数/概率</div>
+            </template>
+            <template slot-scope="scope"> {{ scope.row.rain4 }}% </template>
+          </el-table-column>
+          <el-table-column prop="rain5" sortable align="center">
+            <template slot="header">
+              <div>大暴雨</div>
+              <div>次数/概率</div>
+            </template>
+            <template slot-scope="scope"> {{ scope.row.rain5 }}% </template>
+          </el-table-column>
+          <el-table-column prop="rain6" sortable align="center">
+            <template slot="header">
+              <div>特大暴雨</div>
+              <div>次数/概率</div>
+            </template>
+            <template slot-scope="scope"> {{ scope.row.rain6 }}% </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-card>
+  </div>
+</template>
+
+<script>
+import { rainfallDay, rainfallMon } from "@/api/make.js";
+import XlSX from "xlsx";
+import FileSaver from "file-saver";
+import rainfallDayData from "../assets/api/rainfallDay.json";
+import MonData from "../assets/api/rainfallMon.json";
+export default {
+  data() {
+    return {
+      radio: 2,
+      dateRange: ["20220129000000", "20220829000000"],
+      tableData: [],
+      postList: {
+        startTime: "20120129000000",
+        endTime: "20220829000000",
+        siteGroup: "1",
+      },
+      options: [
+        {
+          value: "1",
+          label: "大监测站",
+        },
+        {
+          value: "2",
+          label: "区域站",
+        },
+        {
+          value: "3",
+          label: "全部区域站",
+        },
+      ],
+      pickerOptions: {
+        // 限制不能选择今天之后的日期
+        disabledDate: (time) => {
+          return time.getTime() > Date.now();
+        },
+      },
+      dayStatisticsData: null,
+      loading: true,
+    };
+  },
+  created() {},
+  mounted() {
+    this.getMonData();
+  },
+  methods: {
+    // getDataButton() {
+    //   if (this.radio == 1) {
+    //     this.getDayData();
+    //   } else if (this.radio == 2) {
+    //     this.getMonData();
+    //   }
+    // },
+
+    //获取日数据
+    getDayData() {
+      rainfallDay({
+        startTime: this.dateRange[0],
+        endTime: this.dateRange[1],
+        siteGroup: this.postList.siteGroup,
+      })
+        .then((res) => {
+          if (res.data.s == 1) {
+            this.dayStatisticsData = null;
+            this.tableData = [];
+            this.dayStatisticsData = res.data.d;
+            //   // 获取this.dayStatisticsData中的所有对象
+            let arr = Object.keys(this.dayStatisticsData);
+            //   // 遍历this.dayStatisticsData中的所有对象
+            for (let i = 0; i < arr.length; i++) {
+              var obj = {};
+              obj.sid = arr[i];
+              obj.name = this.dayStatisticsData[arr[i]].name;
+              obj.DayCount = this.dayStatisticsData[arr[i]].DayCount;
+              obj.rain1 =
+                this.dayStatisticsData[arr[i]][1] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][1] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain2 =
+                this.dayStatisticsData[arr[i]][2] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][2] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain3 =
+                this.dayStatisticsData[arr[i]][3] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][3] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain4 =
+                this.dayStatisticsData[arr[i]][4] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][4] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain5 =
+                this.dayStatisticsData[arr[i]][5] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][5] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain6 =
+                this.dayStatisticsData[arr[i]][6] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][6] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              this.tableData.push(obj);
+            }
+          }
+          this.loading = false;
+        })
+        .catch((err) => {
+          this.dayStatisticsData = null;
+          this.tableData = [];
+          this.dayStatisticsData = rainfallDayData.d;
+          //   // 获取this.dayStatisticsData中的所有对象
+          let arr = Object.keys(this.dayStatisticsData);
+          //   // 遍历this.dayStatisticsData中的所有对象
+          for (let i = 0; i < arr.length; i++) {
+            var obj = {};
+            obj.sid = arr[i];
+            obj.name = this.dayStatisticsData[arr[i]].name;
+            obj.DayCount = this.dayStatisticsData[arr[i]].DayCount;
+            obj.rain1 =
+              this.dayStatisticsData[arr[i]][1] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][1] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain2 =
+              this.dayStatisticsData[arr[i]][2] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][2] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain3 =
+              this.dayStatisticsData[arr[i]][3] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][3] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain4 =
+              this.dayStatisticsData[arr[i]][4] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][4] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain5 =
+              this.dayStatisticsData[arr[i]][5] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][5] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain6 =
+              this.dayStatisticsData[arr[i]][6] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][6] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            this.tableData.push(obj);
+          }
+          this.loading = false;
+        });
+    },
+    //获取月数据
+    getMonData() {
+      rainfallMon({
+        startTime: this.dateRange[0],
+        endTime: this.dateRange[1],
+        siteGroup: this.postList.siteGroup,
+      })
+        .then((res) => {
+          if (res.data.s == 1) {
+            this.dayStatisticsData = null;
+            this.tableData = [];
+            this.dayStatisticsData = res.data.d;
+            let arr = Object.keys(this.dayStatisticsData);
+            //   // 遍历this.dayStatisticsData中的所有对象
+            for (let i = 0; i < arr.length; i++) {
+              var obj = {};
+              obj.sid = arr[i];
+              obj.name = this.dayStatisticsData[arr[i]].name;
+              obj.DayCount = this.dayStatisticsData[arr[i]].DayCount;
+              obj.rain1 =
+                this.dayStatisticsData[arr[i]][1] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][1] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain2 =
+                this.dayStatisticsData[arr[i]][2] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][2] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain3 =
+                this.dayStatisticsData[arr[i]][3] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][3] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain4 =
+                this.dayStatisticsData[arr[i]][4] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][4] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain5 =
+                this.dayStatisticsData[arr[i]][5] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][5] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              obj.rain6 =
+                this.dayStatisticsData[arr[i]][6] +
+                "/" +
+                (
+                  (this.dayStatisticsData[arr[i]][6] /
+                    this.dayStatisticsData[arr[i]].DayCount) *
+                  100
+                ).toFixed(1);
+              this.tableData.push(obj);
+            }
+          }
+          this.loading = false;
+        })
+        .catch((err) => {
+          this.dayStatisticsData = null;
+          this.tableData = [];
+          this.dayStatisticsData = MonData.d;
+          let arr = Object.keys(this.dayStatisticsData);
+          //   // 遍历this.dayStatisticsData中的所有对象
+          for (let i = 0; i < arr.length; i++) {
+            var obj = {};
+            obj.sid = arr[i];
+            obj.name = this.dayStatisticsData[arr[i]].name;
+            obj.DayCount = this.dayStatisticsData[arr[i]].DayCount;
+            obj.rain1 =
+              this.dayStatisticsData[arr[i]][1] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][1] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain2 =
+              this.dayStatisticsData[arr[i]][2] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][2] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain3 =
+              this.dayStatisticsData[arr[i]][3] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][3] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain4 =
+              this.dayStatisticsData[arr[i]][4] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][4] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain5 =
+              this.dayStatisticsData[arr[i]][5] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][5] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            obj.rain6 =
+              this.dayStatisticsData[arr[i]][6] +
+              "/" +
+              (
+                (this.dayStatisticsData[arr[i]][6] /
+                  this.dayStatisticsData[arr[i]].DayCount) *
+                100
+              ).toFixed(1);
+            this.tableData.push(obj);
+          }
+          this.loading = false;
+        });
+    },
+    // 导出表格
+    importClick() {
+      let vv = XlSX.utils.table_to_book(document.getElementById("daochu"));
+      let vbouts = XlSX.write(vv, {
+        bookType: "xlsx",
+        bookSST: true,
+        type: "array",
+      });
+      try {
+        FileSaver.saveAs(
+          new Blob([vbouts], { type: "application/octet-stream" }),
+          "降雨概率.xlsx"
+        );
+      } catch (e) {
+        if (typeof console !== "undefined") console.log(e, vbouts);
+      }
+      return vbouts;
+    },
+  },
+};
+</script>
+
+<style lang="less" scoped>
+.main {
+  font-size: 14px;
+  height: 100%;
+  padding: 16px;
+  background: #f5f6f7;
+  & .box_card {
+    height: 100%;
+  }
+  .top {
+    padding-bottom: 20px;
+    .btn {
+      margin-left: 10px;
+    }
+  }
+}
+</style>

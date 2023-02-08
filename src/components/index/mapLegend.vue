@@ -1,0 +1,151 @@
+<template>
+  <!-- 地图数据1 -->
+  <div class="legend">
+      <div v-for="(item, index) in data" :key="index">
+        <div class="legendBox" v-if="item.show">
+          <ul class="legendColors">
+            <li v-for="(val, i) in item.data" :key="i" :style="'width: calc(100% / ' + item.data.length + ')'">
+              <span class="color" :style="'background: ' + val.color"></span>
+              <span class="val">{{val.val}}</span>
+            </li>
+          </ul>
+          <span class="legendTitle" v-html="item.util"></span>
+        </div>
+      </div>
+  </div>
+</template>
+
+<script>
+export default {
+    data(){
+        return{
+          data : [
+            {
+              name : "雷达图",
+              show : true,
+              util : "雷达<br>（dbz）",
+              data : [
+                {
+                  color : "#B4FFAA",
+                  val : "15"
+                },{
+                  color : "#5FED00",
+                  val : "20"
+                },{
+                  color : "#3C9400",
+                  val : "25"
+                },{
+                  color : "#FCF855",
+                  val : "30"
+                },{
+                  color : "#CDCC00",
+                  val : "35"
+                },{
+                  color : "#8C9000",
+                  val : "40"
+                },{
+                  color : "#F5AFAD",
+                  val : "45"
+                },{
+                  color : "#EF6351",
+                  val : "50"
+                },{
+                  color : "#DE0033",
+                  val : "55"
+                },{
+                  color : "#D18CFF",
+                  val : "60"
+                },{
+                  color : "#A508FF",
+                  val : "65"
+                }
+              ]
+            },{
+              name : "风险级别",
+              show : false,
+              util : "风险<br>级别",
+              data:[
+                {
+                  color : "#465AFF",
+                  val : "一般"
+                },{
+                  color : "#E1D600",
+                  val : "较高"
+                },{
+                  color : "#E89900",
+                  val : "很高"
+                },{
+                  color : "#CD2B2B",
+                  val : "严重"
+                }
+              ]
+            }
+          ],          
+        }
+    },
+    created(){// 初始化界面之前获取数据
+      
+    },
+}
+</script>
+<style scoped>
+.legendBox {
+    margin: 20px;
+    background: rgb(255 255 255 / 29%);
+    padding-right: 70px;
+    border: 1px solid #fff;
+    position: relative;
+}
+
+ul.legendColors {
+    margin: 0;
+    padding: 10px 10px 5px;
+    list-style: none;
+    width: 300px;
+    border-right: 1px solid #fff;
+    text-align: center;
+    text-shadow: 0 0 2px #fff;
+    display: inline-block;
+}
+
+ul.legendColors li {
+    display: inline-block;
+}
+
+ul.legendColors .color {
+    height: 15px;
+    width: 100%;
+    display: inline-block;
+    border: 1px solid #fff;
+    border-right: none;
+}
+
+ul.legendColors li:last-child .color {
+    border-right: 1px solid #fff;
+}
+
+ul.legendColors .val {
+    font-size: 14px !important;
+    color: #333333;
+    display: inline-block;
+    line-height: 22px;
+}
+
+span.legendTitle {
+    width: 70px;
+    display: inline-block;
+    text-align: center;
+    border-left: none;
+    vertical-align: middle;
+    line-height: 24px;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    font-size: 14px !important;
+    color: #333333;
+    text-shadow: 0 0 2px #fff;
+}
+
+
+</style>

@@ -1,0 +1,572 @@
+<template>
+    <div class="historyCompareMain">
+        <el-card class="box_card">
+            <div class="contentTop">
+                <div style="display:flex;align-items: center;">
+                    <label>时间选择 ：</label>
+                    <el-date-picker
+                        v-model="Time"
+                        type="datetime"
+                        size="mini"
+                        value-format='yyyy-MM-dd-HH'
+                        format='yyyy-MM-dd-HH'
+                        placeholder="选择日期"
+                        @change='changeTime'
+                    >
+                    </el-date-picker>
+                    <label>要素选择 ：</label>
+                    <el-select
+                        size="mini"
+                        style="margin-right:20px;"
+                        v-model="element"
+                        placeholder="请选择要素"
+                    >
+                        <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        >
+                        </el-option>
+                    </el-select>
+                </div>
+
+                <div style="margin-top:20px;display:flex;align-items: center;">
+                    <label>区域选择 ：</label>
+                    <el-select
+                        size="mini"
+                        style="margin-right:20px;"
+                        v-model="SelectCity"
+                        placeholder="请选择区域"
+                        @change="SelectionChange"
+                    >
+                        <el-option
+                            v-for="item in Selection"
+                            :key="item.code"
+                            :label="item.label"
+                            :value="item.code"
+                        >
+                        </el-option>
+                    </el-select>
+                    <label>站点选择 ：</label>
+                    <el-select
+                        size="mini"
+                        style="margin-right:20px;"
+                        v-model="value"
+                        placeholder="请选择站点"
+                    >
+                        <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        >
+                        </el-option>
+                    </el-select>
+                    <div style="margin-right:20px;">
+                        <el-checkbox
+                            v-model="checked1"
+                            label="网格值"
+                            border
+                            size="mini"
+                        ></el-checkbox>
+                        <el-checkbox
+                            v-model="checked2"
+                            label="色斑图"
+                            border
+                            size="mini"
+                        ></el-checkbox>
+                    </div>
+                    <el-button
+                        type="primary"
+                        size="mini"
+                    >查询</el-button>
+                </div>
+
+                <el-divider></el-divider>
+            </div>
+            <div class="contentBotton">
+                <div class="header">
+                    网格实况和站点实况对比分析
+                </div>
+                <div class="footer">
+                    <div>
+                        <div
+                            id="map"
+                            ref="map"
+                            style="width: 100%; height: 100%; background:#fff; z-index:1;"
+                        ></div>
+                    </div>
+                    <div>
+                        <div
+                            id="map1"
+                            ref="map1"
+                            style="width: 100%; height: 100%; background:#fff; z-index:1;"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </el-card>
+    </div>
+</template>
+
+<script>
+import cityJSON from "@/assets/map/530900.json";
+import { contrast } from "@/api/maplayer";
+import { DateGrid} from "@/utils/index"
+export default {
+    name: "HistoryCompare",
+    data() {
+        return {
+            Time: DateGrid(new Date(),'yyyy-MM-dd-HH'),
+            element: "ER01",
+            options: [
+                {
+                    value: "ER01",
+                    label: "降水",
+                },
+                {
+                    value: "TAIR",
+                    label: "平均温度",
+                },
+                {
+                    value: "RHU",
+                    label: "相对湿度",
+                },
+                {
+                    value: "uv",
+                    label: "风",
+                },
+            ],
+            Selection: [
+                {
+                    code: "530900",
+                    label: "临沧市",
+                    bound: [
+                        [25.03284, 100.546904],
+                        [23.073182, 98.668863],
+                    ],
+                },
+                {
+                    code: "530902",
+                    label: "临翔区",
+                    bound: [
+                        [24.257028, 100.436529],
+                        [23.498479, 99.851013],
+                    ],
+                },
+                {
+                    code: "530921",
+                    label: "凤庆县",
+                    bound: [
+                        [25.03284, 100.218688],
+                        [24.224386, 99.517763],
+                    ],
+                },
+                {
+                    code: "530922",
+                    label: "云县",
+                    bound: [
+                        [24.759422, 100.546904],
+                        [23.949164, 99.719058],
+                    ],
+                },
+                {
+                    code: "530923",
+                    label: "永德县",
+                    bound: [
+                        [24.44895, 99.846543],
+                        [23.74934, 99.088111],
+                    ],
+                },
+                {
+                    code: "530924",
+                    label: "镇康县",
+                    bound: [
+                        [24.256558, 99.372643],
+                        [23.627489, 98.668863],
+                    ],
+                },
+                {
+                    code: "530925",
+                    label: "双江县",
+                    bound: [
+                        [23.803665, 100.157087],
+                        [23.198739, 99.586558],
+                    ],
+                },
+                {
+                    code: "530926",
+                    label: "耿马县",
+                    bound: [
+                        [24.026616, 99.902604],
+                        [23.347827, 98.802753],
+                    ],
+                },
+                {
+                    code: "530927",
+                    label: "沧源县",
+                    bound: [
+                        [23.505013, 99.71748],
+                        [23.073182, 98.871097],
+                    ],
+                },
+            ],
+            SelectCity: "530900",
+            value: "",
+            map: null,
+            map1: null,
+            mapStyleData: [
+                {
+                    icon: require("@/assets/mapStyle/vec_c.png"),
+                    iconClass: "mapStyleColorWhite",
+                    name: "白底图",
+                    layer: L.layerGroup(),
+                    shentuhao: "GS(2019)5218",
+                },
+            ],
+            mapLayer: [
+                {
+                    name: "市界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#3e87f4",
+                        fill: false,
+                        weight: 3,
+                    },
+                    levelName: "cityJSON",
+                    show: true,
+                },
+                {
+                    name: "区县界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 2,
+                    },
+                    show: true,
+                },
+                {
+                    name: "乡镇界",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    style: {
+                        zIndex: 4,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 0.5,
+                    },
+                    show: true,
+                },
+                {
+                    name: "市名",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    show: true,
+                },
+                {
+                    name: "区县名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "乡镇名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "作业点",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+            ],
+            mapLayer1: [
+                {
+                    name: "市界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#3e87f4",
+                        fill: false,
+                        weight: 3,
+                    },
+                    levelName: "cityJSON",
+                    show: true,
+                },
+                {
+                    name: "区县界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 2,
+                    },
+                    show: true,
+                },
+                {
+                    name: "乡镇界",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    style: {
+                        zIndex: 4,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 0.5,
+                    },
+                    show: true,
+                },
+                {
+                    name: "市名",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    show: true,
+                },
+                {
+                    name: "区县名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "乡镇名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "作业点",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+            ],
+            checked1: true,
+            checked2: true,
+        };
+    },
+    mounted() {
+        this.initMap();
+        this.initMap1();
+        this.contrast();
+    },
+    methods: {
+        initMap() {
+            // 初始化网格预报 预报间隔的数据时间
+            this.map = L.map(this.$refs["map"], {
+                center: [25.03284, 100.546904], // 地图中心
+                zoom: 8, //缩放比列
+                zoomControl: false, //禁用 + - 按钮
+                doubleClickZoom: false, // 禁用双击放大
+                attributionControl: false, // 移除右下角leaflet标识
+                zoomSnap: 0.01,
+            });
+            this.map.fitBounds([
+                [25.03284, 100.546904],
+                [23.073182, 98.668863],
+            ]);
+            this.imageBounds = [
+                [25.035, 100.545],
+                [23.015, 98.67],
+            ];
+            this.mapStyleData[0].layer.addTo(this.map);
+            this.initMapLayer();
+        },
+        initMap1() {
+            // 初始化网格预报 预报间隔的数据时间
+            this.map1 = L.map(this.$refs["map1"], {
+                center: [25.03284, 100.546904], // 地图中心
+                zoom: 8, //缩放比列
+                zoomControl: false, //禁用 + - 按钮
+                doubleClickZoom: false, // 禁用双击放大
+                attributionControl: false, // 移除右下角leaflet标识
+                zoomSnap: 0.01,
+            });
+            this.map1.fitBounds([
+                [25.03284, 100.546904],
+                [23.073182, 98.668863],
+            ]);
+            this.imageBounds = [
+                [25.035, 100.545],
+                [23.015, 98.67],
+            ];
+            this.mapStyleData[0].layer.addTo(this.map1);
+            this.initMapLayer1();
+        },
+        initMapLayer() {
+            // 初始化地图图层
+            // 市边界
+            this.mapLayer[0].layer = L.geoJSON(cityJSON, {
+                style: () => {
+                    return this.mapLayer[0].style;
+                },
+                pane: "tilePane",
+            });
+            this.Selection.map((item) => {
+                // 区县界
+                if (item.code == 530900) {
+                    return;
+                } else {
+                    let countyData = require(`@/assets/map/${item.code}/${item.code}.json`);
+                    let countyLayer = L.geoJSON(countyData, {
+                        style: () => {
+                            return this.mapLayer[1].style;
+                        },
+                        pane: "tilePane",
+                    });
+                    countyLayer.addTo(this.mapLayer[1].layer);
+
+                    //区县名
+                    let countyLatlng = countyLayer.getBounds().getCenter();
+                    let countyMarker = L.marker(
+                        [countyLatlng.lat, countyLatlng.lng],
+                        {
+                            icon: L.divIcon({
+                                className: "mapCityName",
+                                html: "<span>" + item.label + "</span>",
+                                iconSize: [40, 20],
+                                iconAnchor: [20, 10],
+                            }),
+                            pane: "tilePane",
+                        }
+                    );
+                    countyMarker.addTo(this.mapLayer[4].layer);
+                }
+            });
+
+            // 将配置好的地图图层叠加到地图上
+            this.mapLayer.forEach((item) => {
+                item.layer.addTo(this.map);
+            });
+        },
+        initMapLayer1() {
+            // 初始化地图图层
+            // 市边界
+            this.mapLayer1[0].layer = L.geoJSON(cityJSON, {
+                style: () => {
+                    return this.mapLayer1[0].style;
+                },
+                pane: "tilePane",
+            });
+            this.Selection.map((item) => {
+                // 区县界
+                if (item.code == 530900) {
+                    return;
+                } else {
+                    let countyData = require(`@/assets/map/${item.code}/${item.code}.json`);
+                    let countyLayer = L.geoJSON(countyData, {
+                        style: () => {
+                            return this.mapLayer1[1].style;
+                        },
+                        pane: "tilePane",
+                    });
+                    countyLayer.addTo(this.mapLayer1[1].layer);
+
+                    //区县名
+                    let countyLatlng = countyLayer.getBounds().getCenter();
+                    let countyMarker = L.marker(
+                        [countyLatlng.lat, countyLatlng.lng],
+                        {
+                            icon: L.divIcon({
+                                className: "mapCityName",
+                                html: "<span>" + item.label + "</span>",
+                                iconSize: [40, 20],
+                                iconAnchor: [20, 10],
+                            }),
+                            pane: "tilePane",
+                        }
+                    );
+                    countyMarker.addTo(this.mapLayer1[4].layer);
+                }
+            });
+
+            // 将配置好的地图图层叠加到地图上
+            this.mapLayer1.forEach((item) => {
+                item.layer.addTo(this.map1);
+            });
+        },
+        SelectionChange() {
+            this.Selection.forEach((it) => {
+                if (this.SelectCity == it.code) {
+                    this.map.fitBounds(it.bound); // 将范围移动到区县
+                    this.map1.fitBounds(it.bound); // 将范围移动到区县
+                }
+            });
+        },
+        changeTime() {
+            console.log(this.Time);
+        },
+        contrast() {
+            contrast({
+                selImg:"",
+                time: this.Time,
+                element: this.element,
+            }).then((res) => {
+                console.log(res.data.d);
+            });
+        },
+    },
+};
+</script>
+
+<style lang="less" scoped>
+.historyCompareMain {
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+    & .box_card {
+        height: 100%;
+    }
+    ::v-deep.el-card__body {
+        height: 100%;
+    }
+    .contentTop {
+        margin-bottom: 20px;
+    }
+    ::v-deep.el-checkbox__inner::after {
+        top: 1px;
+        left: 4px;
+    }
+    ::v-deep.el-date-editor.el-input,
+    .el-date-editor.el-input__inner {
+        width: 193px;
+        margin-right: 20px;
+    }
+    .contentBotton {
+        height: calc(100% - 120px);
+        .header {
+            height: 45px;
+            line-height: 45px;
+            padding-left: 20px;
+            font-size: 18px;
+            background: #000458;
+            color: #fff;
+        }
+        .footer {
+            height: calc(100% - 45px);
+            display: flex;
+            flex-wrap: wrap;
+            overflow-y: auto;
+            div {
+                height: calc(100%);
+                width: 50%;
+                border: 1px solid #ccc;
+            }
+        }
+        .el-checkbox__inner::after {
+            top: 4px;
+            left: 1px;
+        }
+    }
+}
+</style>

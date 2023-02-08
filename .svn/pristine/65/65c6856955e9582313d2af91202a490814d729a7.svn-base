@@ -1,0 +1,69 @@
+<template>
+  <div class="txtProduct">
+    <!-- 所有产品列表 -->
+    <div class="txtLeft">
+        <ul>
+            <li v-for="p in productList" :key="p.id" :class="selectIndex==p.id?'active':''" @click="selectIndex = p.id">
+                {{p.name}}
+            </li>
+        </ul>
+    </div>
+    <!-- 产品制作部分 -->
+    <div class="txtRight">
+        <txtSend/>
+    </div>
+  </div>
+</template>
+
+<script>
+import txtSend from "../components/txtProduct/txtSend.vue"
+export default {
+    components: {txtSend},
+    data(){
+        return{
+            selectIndex: 1,
+            productList: [
+                {id: 1, name: "未来24小时城市天气预报"},
+                {id: 2, name: "未来24小时临沧市乡镇预报"},
+                {id: 3, name: "周末天气预报"},
+                {id: 4, name: "未来一周天气预报"},
+                {id: 5, name: "临沧早8点"},
+                {id: 6, name: "主持人稿件"},
+                {id: 7, name: "小水电站流域“未来一周天气预报”"}                               
+            ]
+        }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.txtProduct{
+    display: flex;
+    height: 100%;   
+    .txtLeft{
+        height: 100%;
+        color: #333;
+        width: 300px;
+        border-right: 1px solid #ADB3BB;
+        ul{
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            li{
+                padding: 15px 20px;
+                border-bottom: 1px solid #EBEEF5;
+                cursor: pointer;
+            }
+            li.active{
+                background: #DCECFF;
+                color: #2D5A9D;
+                font-weight: bold;
+            }
+        }
+    }
+    .txtRight{
+        flex-grow: 1;
+        height: 100%;
+    }
+}
+</style>

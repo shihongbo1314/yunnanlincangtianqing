@@ -1,0 +1,392 @@
+<template>
+    <!-- 分组管理 -->
+    <div class="right">
+        <div class="content" v-if="jieguozhibiao==null">
+            <div class="content_one" style="overflow: auto; height: calc(100% - 80px)">
+                <!-- <div class="content_top">
+          <el-button
+            type="success"
+            size="medium"
+            style="margin-right: 16px"
+            @click="add()"
+            >添加</el-button
+          >
+        </div> -->
+                <!-- 表格 -->
+                <div class="table">
+                    <el-table :data="tableData" border stripe style="width: 100%" class="commonTable">
+                        <el-table-column label="序号" width="80" align="center" type="index">
+                        </el-table-column>
+                        <el-table-column prop="name" label="名称" align="center">
+                        </el-table-column>
+                        <el-table-column prop="definition" label="描述" align="center">
+                        </el-table-column>
+                        <el-table-column prop="startTime" label="开始时间" align="center">
+                            <template slot-scope="scope">
+                                <span>{{ getTableDayString(scope.row.startTime) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="endTime" label="结束时间" align="center">
+                            <template slot-scope="scope">
+                                <span>{{ getTableDayString(scope.row.endTime) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="指标" align="center">
+                            <template slot-scope="scope">
+                                <span>{{ getSuitabilityString(scope.row) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" align="center">
+                            <template slot-scope="scope">
+                                <el-button type="text" size="large" @click="editor(scope.row)">修改</el-button>
+                                <el-divider direction="vertical"></el-divider>
+                                <el-button type="text" size="large" @click="editorJieGuo(scope.row)">结果指标</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+                <el-dialog title="修改" :visible.sync="dialogVisible" width="30%">
+                    <el-form  ref="form" :rules="rules" :model="form" label-width="80px">
+                        <el-form-item label="名称" prop="name">
+                            <el-input
+                                v-model="form.name"
+                                placeholder="请输入名称"
+                            ></el-input>
+                        </el-form-item>
+                        <el-form-item label="描述" prop="definition">
+                            <el-input
+                                type="textarea"
+                                :rows="3"
+                                v-model="form.definition"
+                                placeholder="请输入描述"
+                            ></el-input>
+                        </el-form-item>
+                        <el-form-item label="指标">
+                            <div style="display: inline-block; width: 100%;">
+                                <span v-for="(item, index) in updateInput" :key="index">
+                                    <span v-if="item.type == 1">{{ item.str }}</span>
+                                    <el-input v-else class="updateSuitabilityInput" v-model="item.val"
+                                        placeholder="请输入"></el-input>
+                                </span>
+                            </div>
+                        </el-form-item>
+                    </el-form>
+                    
+                    <span slot="footer" class="dialog-footer">
+                        <el-button @click="dialogVisible = false">取 消</el-button>
+                        <el-button type="primary" @click="userEditor()">确 定</el-button>
+                    </span>
+                </el-dialog>
+            </div>
+        </div>
+        <AllSuitabilityJG v-else :jieguozhibiao="jieguozhibiao" />
+    </div>
+</template>
+<script>
+import request from '@/api/request'
+import Pagination from "@/components/Pagination";
+import AllSuitabilityJG from './allSuitabilityJG.vue';
+export default {
+    components: { Pagination, AllSuitabilityJG },
+    data() {
+        return {
+            jieguozhibiao : null,
+            listQuery: {
+                current: 1,
+                size: 10,
+            },
+            total: 0,
+            tableData: [],
+            roleList: [],
+            dialogVisible: false,
+            dialogStatus: "添加",
+            updateInput: null,
+            form: {
+               id : null,
+               name : null,
+               definition : null,
+            },
+            rules: {
+                name: [
+                    { required: true, message: "请输入名称", trigger: "blur" },
+                ],
+                definition: [
+                    { required: true, message: "请输入描述", trigger: "blur" },
+                ],
+            },
+        };
+    },
+    created() {
+        // 初始化界面之前获取数据
+    },
+    mounted() {
+        // 界面显示完成后调用方法
+        this.getPage();
+    },
+    methods: {
+        // 获取列表
+        getPage() {
+            request({
+                url: 'indexSuitability/list',
+                methods: "get",
+            }).then((res) => {
+                console.log(res)
+                if (res.data.s == 1) {
+                    this.tableData = res.data.d;
+                    this.total = res.data.d.length;
+                }
+            });
+        },
+        // 时间范围文本化
+        getTableDayString(val) {
+            return val.substr(0, 2) + "月" + val.substr(2) + "日";
+        },
+        // 指标信息还原
+        getSuitabilityString(row) {
+            try {
+                let str = row.formulaText;
+                let titles = JSON.parse(row.explaininfo);
+                let vals = JSON.parse(row.formulaValue);
+
+                Object.keys(titles).forEach(t => {
+                    while (str.indexOf(t) > -1) {
+                        str = str.replace(t, titles[t]);
+                    }
+                })
+                Object.keys(vals).forEach(t => {
+                    while (str.indexOf(t) > -1) {
+                        str = str.replace(t, vals[t]);
+                    }
+                })
+                return str;
+            } catch (error) {
+                return '-'
+            }
+        },
+        deleteRow(index, rows) {
+            rows.splice(index, 1);
+        },
+        // 修改
+        editor(row) {
+            if (this.getSuitabilityString(row) == '-') {
+                this.$message.error('指标异常！');
+                return;
+            }
+
+            this.form = JSON.parse(JSON.stringify(row));
+            let str = row.formulaText;
+            let titles = JSON.parse(row.explaininfo);
+            let vals = JSON.parse(row.formulaValue);
+
+            Object.keys(titles).forEach(t => {
+                while (str.indexOf(t) > -1) {
+                    str = str.replace(t, titles[t]);
+                }
+            })
+            let inputs = [];
+            this.updateInput = [];
+            Object.keys(vals).forEach(t => {
+                while (str.indexOf(t) > -1) {
+                    inputs.push({
+                        type: 2,
+                        name: t,
+                        val: vals[t]
+                    })
+                    str = str.replace(t, '-input-');
+                }
+            })
+            str.split("-input-").forEach((item, index) => {
+                this.updateInput.push({
+                    type: 1,
+                    str: item
+                })
+                if (inputs[index]) {
+                    this.updateInput.push(inputs[index]);
+                }
+            })
+            this.dialogVisible = true;
+        },
+        // 修改确定按钮
+        userEditor() {
+            if(this.form.name == '' || this.form.definition == ''){
+                return;
+            }
+            let haveError = false;
+            let formulaValue = {};
+            this.updateInput.forEach(item=>{
+                if(item.type == 2){
+                    formulaValue[item.name] = item.val;
+                    if(item.val == ''){
+                        haveError = true;
+                    }
+                }
+            })
+            if(haveError){
+                this.$message.error('指标异常！');
+                return;
+            }
+
+            request.post('indexSuitability/update', {
+                id : this.form.id,
+                name : this.form.name,
+                definition : this.form.definition,
+                formulaValue : JSON.stringify(formulaValue)
+            }).then((res) => {
+                if (res.data.s == 1) {
+                    this.$message({
+                        message: "修改成功",
+                        type: "success",
+                    });
+                    this.dialogVisible = false;
+                    this.getPage();
+                } else {
+                    this.$message.error(res.data.message);
+                }
+            });
+        },
+        editorJieGuo(row){
+            this.jieguozhibiao = row;
+        },
+        // 删除用户
+        deleteUser(index, row) {
+            this.$confirm("此操作将永久删除该文件, 是否继续?", "提示", {
+                confirmButtonText: "确定",
+                cancelButtonText: "取消",
+                type: "warning",
+            })
+                .then(() => {
+                    deleteUserData({
+                        id: row.id,
+                    }).then((res) => {
+                        if (res.data.state == 200) {
+                            this.$message({
+                                message: "删除成功",
+                                type: "success",
+                            });
+                            this.dialogVisible = false;
+                            this.getPage();
+                        } else {
+                            this.$message.error(res.data.message);
+                        }
+                    });
+                })
+                .catch(() => {
+                    this.$message({
+                        type: "info",
+                        message: "已取消删除",
+                    });
+                });
+        },
+    },
+};
+</script>
+
+<style lang="less" scoped>
+/deep/ body {
+    padding: 0 !important;
+}
+
+.right {
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+
+    .content {
+        height: 100%;
+        background-color: #ffffff;
+        border: 1px solid #EBEEF5;
+        border-radius: 4px;
+        box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+        padding: 20px;
+
+        /deep/ .el-dialog__body {
+            padding: 16px 18px 40px 18px;
+
+            .el-form--inline {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+
+            .NewBookmarks {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-around;
+
+                /deep/ .el-checkbox-button__inner:hover {
+                    color: none;
+                }
+
+                .el-checkbox-group {
+                    width: 128px;
+                    height: 80px;
+
+                    .el-checkbox-button:last-child .el-checkbox-button__inner {
+                        width: 128px;
+                        height: 80px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: space-around;
+                        color: #adb3bb;
+                        font-size: 14px;
+                        font-weight: 600;
+                        border-radius: 4px;
+                    }
+
+                    .el-checkbox-button.is-checked .el-checkbox-button__inner {
+                        background-color: #f0f6ff;
+
+                        span {
+                            color: #3e87f4;
+                        }
+                    }
+                }
+            }
+        }
+
+        .content_top {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border-bottom: 1px #d6d9dd solid;
+            justify-content: flex-end;
+
+            button {
+                /deep/span {
+                    width: 32px;
+                    height: 24px;
+                    font-size: 16px;
+                    color: #ffffff;
+                    letter-spacing: 0;
+                    text-align: justify;
+                    font-weight: 400;
+                }
+            }
+        }
+
+        .bottom {
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+
+            /deep/.el-pagination {
+                font-family: PingFangSC-Semibold;
+                font-size: 14px;
+                color: #333333;
+                font-weight: 600;
+            }
+        }
+    }
+}
+
+
+.updateSuitabilityInput {
+    width: 80px;
+
+    input {
+        text-align: center;
+    }
+}
+</style>

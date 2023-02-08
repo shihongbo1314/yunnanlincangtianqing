@@ -1,0 +1,1943 @@
+<template>
+    <div class="historyCompareMain">
+        <div
+            class="leftBox"
+            ref="leftBox"
+            :class="!isshow ? 'leftBox1':'leftBox'"
+        >
+            <div
+                :class="!isshow ? 'firstbox1':'firstbox'"
+                @click="btnClick"
+            >
+                <img
+                    src="@/assets/img/left.png"
+                    style="width: 16px;height: 16px;"
+                    v-if="isshow"
+                >
+                <img
+                    v-else
+                    src="@/assets/img/right.png"
+                    style="width: 16px;height: 16px;"
+                >
+                <span>收起</span>
+            </div>
+            <div
+                :class="!isshow ? 'secondbox1':'secondbox'"
+                @click="contrast"
+            >
+                <span>确定查询</span>
+            </div>
+            <div
+                class="SeletEle"
+                v-if="isshow"
+            >
+                <div class="flex">
+                    <label>数据类型</label>
+                    <el-select
+                        v-model="NumberTypeSelect"
+                        placeholder="请选择"
+                        size="mini"
+                        style="margin-left: 15px;"
+                        @change="changeSelectType"
+                    >
+                        <el-option
+                            v-for="item,index in NumberType"
+                            :key="index"
+                            :label="item"
+                            :value="item"
+                        >
+                        </el-option>
+                    </el-select>
+                </div>
+                <span v-if="NumberTypeSelect == '实况对比'">
+                    <div
+                        class="flex"
+                        style="margin-top: 10px;"
+                    >
+                        <label>时间选择</label>
+                        <el-date-picker
+                            v-model="Time"
+                            type="datetime"
+                            size="mini"
+                            value-format='yyyyMMddHH'
+                            format='yyyy-MM-dd-HH'
+                            placeholder="选择日期"
+                        >
+                        </el-date-picker>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label>要素选择</label>
+                        <div class="Seletbox">
+                            <el-checkbox
+                                v-for="ele in elements"
+                                :key="ele.value"
+                                :label="ele.value"
+                                v-model="ele.checked"
+                                @change="handleCheckedRolesChange(ele)"
+                            >{{ele.label}}</el-checkbox>
+                        </div>
+                    </div>
+                </span>
+                <span v-else>
+                    <div style="margin-top: 10px;display:flex;flex-wrap: wrap;">
+                        <div>
+                            <label>时间选择</label>
+                            <el-date-picker
+                                @change="initWgybInterVal"
+                                size="mini"
+                                v-model="wgyb.time"
+                                type="date"
+                                format="yyyy-MM-dd"
+                                prefix-icon="el-icon-date"
+                                placeholder="选择日期时间"
+                            >
+                            </el-date-picker>
+                        </div>
+                        <div style="margin-top:10px;line-height: 28px;">
+                            <el-select
+                                v-model="wgyb.hour"
+                                placeholder="请选择"
+                                size="mini"
+                                style="width: 150px;margin:0 20px 0 70px;"
+                                @change="changeHourYb"
+                            >
+                                <el-option
+                                    v-for="it in wgyb.hourList"
+                                    :label="it"
+                                    :value="it"
+                                ></el-option>
+                            </el-select>
+                            <span>时</span>
+                        </div>
+                        <div class="wgybDayHour">
+                            <!-- 日期时间选择 -->
+                            <span
+                                class="leftTime"
+                                @click="wgybIntervalPage(-1)"
+                            >
+                                <i class="el-icon-caret-left"></i>
+                            </span>
+                            <ul class="times">
+                                <li
+                                    v-for="(item, index) in wgyb.times[wgyb.page]"
+                                    :key="index"
+                                    :class="wgyb.pageIndex == index?'active':''"
+                                    @click="wgyb.pageIndex = index ,timeBtnClick()"
+                                >
+                                    <span class="timeDay">{{item.getDate()}}日</span>
+                                    <span class="timeHour">{{item.getHours() > 9 ? item.getHours() : "0" + item.getHours()}}</span>
+                                </li>
+                            </ul>
+                            <span
+                                class="rightTime"
+                                @click="wgybIntervalPage(1)"
+                            >
+                                <i class="el-icon-caret-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label>要素选择</label>
+                        <div
+                            class="Seletbox"
+                            style="flex-direction: column;"
+                        >
+                            <el-checkbox
+                                v-for="ele in wgyb.elements"
+                                :key="ele.id"
+                                :label="ele.element"
+                                v-model="ele.checked"
+                                @change="handleCheckedRolesChangeYB(ele)"
+                            >{{ele.name}}</el-checkbox>
+                        </div>
+                    </div>
+                </span>
+
+                <div style="margin-top:10px;">
+                    <label style="margin-top: 10px;">区域选择</label>
+                    <el-radio-group
+                        v-model="SelectCity"
+                        @change="SelectionChange"
+                    >
+                        <el-radio
+                            v-for="ele in Selection"
+                            :key="ele.code"
+                            :label="ele.code"
+                        >{{ele.label}}</el-radio>
+                    </el-radio-group>
+                </div>
+
+            </div>
+
+        </div>
+        <el-card
+            class="box_card"
+            :class="!isshow ? 'box_card1':'box_card'"
+        >
+            <div class="contentRight">
+                <div
+                    class="header"
+                    v-if="NumberTypeSelect == '实况对比'"
+                >
+                    网格实况和站点实况对比分析
+                    <div
+                        class="mybutton"
+                        @click="ImgDownLoad"
+                    >
+                        <img
+                            src="@/assets/img/dow.png"
+                            alt=""
+                        >
+                        <span>下载</span>
+                    </div>
+                </div>
+                <div
+                    class="header"
+                    v-else
+                >
+                    网格预报和站点预报对比分析
+                    <div
+                        class="mybutton"
+                        @click="ImgDownLoad"
+                    >
+                        <img
+                            src="@/assets/img/dow.png"
+                            alt=""
+                        >
+                        <span>下载</span>
+                    </div>
+                </div>
+                <div
+                    class="footer"
+                    ref="footer"
+                >
+                    <div
+                        class="firstbox"
+                        v-loading="loading"
+                    >
+                        <div
+                            id="map"
+                            ref="map"
+                            style="width: 100%; height: 100%; background:#fff; z-index:1;"
+                        >
+
+                        </div>
+                        <myLegend
+                            :list="myLegend.list"
+                            :unit="myLegend.unit"
+                        />
+                        <div
+                            class="header"
+                            v-if="NumberTypeSelect == '实况对比'"
+                        >站点（插值）实况{{mySK}}</div>
+                        <div
+                            class="header"
+                            v-else
+                        >国家局网格预报{{myYB}}</div>
+                    </div>
+                    <div
+                        class="secondbox"
+                        v-loading="loading"
+                    >
+                        <div
+                            id="map1"
+                            ref="map1"
+                            style="width: 100%; height: 100%; background:#fff; z-index:1;"
+                        >
+
+                        </div>
+                        <myLegend
+                            :list="myLegend.list"
+                            :unit="myLegend.unit"
+                        />
+                        <div
+                            class="header"
+                            v-if="NumberTypeSelect == '实况对比'"
+                        >格点实况{{mySK1}}</div>
+                        <div
+                            class="header"
+                            v-else
+                        >云南省局网格预报{{myYB1}}</div>
+                    </div>
+                </div>
+            </div>
+        </el-card>
+    </div>
+</template>
+
+<script>
+import cityJSON from "@/assets/map/530900.json";
+import {
+    contrast,
+    getForecastInfo,
+    getForecastInfoYb,
+    getMaxTime,
+    getQbTimeGroup,
+    getContrastList,
+} from "@/api/maplayer";
+import { DateGridmy } from "@/utils/index";
+import { parseTime } from "@/api/date";
+import myLegend from "../components/index/myLegend.vue";
+import domtoimage from "dom-to-image";
+import $ from "@/utils/jquery";
+import axios from "axios";
+export default {
+    name: "HistoryCompare",
+    data() {
+        return {
+            Time: DateGridmy(new Date(), "yyyyMMddHH"),
+            element: "TAIR",
+            checkedEle: null,
+            NumberTypeSelect: "实况对比",
+            NumberType: ["实况对比", "预报对比"],
+            elements: [
+                {
+                    value: "ER01",
+                    label: "降水",
+                    checked: false,
+                },
+                {
+                    value: "TAIR",
+                    label: "平均温度",
+                    checked: true,
+                },
+                {
+                    value: "QAIR",
+                    label: "相对湿度",
+                    checked: false,
+                },
+                {
+                    value: "WIND",
+                    label: "风",
+                    checked: false,
+                },
+            ],
+            Selection: [
+                {
+                    code: "530900",
+                    label: "临沧市",
+                    bound: [
+                        [25.03284, 100.546904],
+                        [23.073182, 98.668863],
+                    ],
+                },
+                {
+                    code: "530902",
+                    label: "临翔区",
+                    bound: [
+                        [24.257028, 100.436529],
+                        [23.498479, 99.851013],
+                    ],
+                },
+                {
+                    code: "530921",
+                    label: "凤庆县",
+                    bound: [
+                        [25.03284, 100.218688],
+                        [24.224386, 99.517763],
+                    ],
+                },
+                {
+                    code: "530922",
+                    label: "云县",
+                    bound: [
+                        [24.759422, 100.546904],
+                        [23.949164, 99.719058],
+                    ],
+                },
+                {
+                    code: "530923",
+                    label: "永德县",
+                    bound: [
+                        [24.44895, 99.846543],
+                        [23.74934, 99.088111],
+                    ],
+                },
+                {
+                    code: "530924",
+                    label: "镇康县",
+                    bound: [
+                        [24.256558, 99.372643],
+                        [23.627489, 98.668863],
+                    ],
+                },
+                {
+                    code: "530925",
+                    label: "双江县",
+                    bound: [
+                        [23.803665, 100.157087],
+                        [23.198739, 99.586558],
+                    ],
+                },
+                {
+                    code: "530926",
+                    label: "耿马县",
+                    bound: [
+                        [24.026616, 99.902604],
+                        [23.347827, 98.802753],
+                    ],
+                },
+                {
+                    code: "530927",
+                    label: "沧源县",
+                    bound: [
+                        [23.505013, 99.71748],
+                        [23.073182, 98.871097],
+                    ],
+                },
+            ],
+            SelectCity: "530900",
+            value: "",
+            map: null,
+            map1: null,
+            mapStyleData: [
+                {
+                    icon: require("@/assets/mapStyle/vec_c.png"),
+                    iconClass: "mapStyleColorWhite",
+                    name: "白底图",
+                    layer: L.layerGroup(),
+                    shentuhao: "GS(2019)5218",
+                },
+            ],
+            mapLayer: [
+                {
+                    name: "市界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#3e87f4",
+                        fill: false,
+                        weight: 3,
+                    },
+                    levelName: "cityJSON",
+                    show: true,
+                },
+                {
+                    name: "区县界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 2,
+                    },
+                    show: true,
+                },
+                {
+                    name: "乡镇界",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    style: {
+                        zIndex: 4,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 0.5,
+                    },
+                    show: true,
+                },
+                {
+                    name: "市名",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    show: true,
+                },
+                {
+                    name: "区县名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "乡镇名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "作业点",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+            ],
+            mapLayer1: [
+                {
+                    name: "市界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#3e87f4",
+                        fill: false,
+                        weight: 3,
+                    },
+                    levelName: "cityJSON",
+                    show: true,
+                },
+                {
+                    name: "区县界",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    style: {
+                        zIndex: 2,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 2,
+                    },
+                    show: true,
+                },
+                {
+                    name: "乡镇界",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    style: {
+                        zIndex: 4,
+                        color: "#DFE2E4",
+                        fill: false,
+                        weight: 0.5,
+                    },
+                    show: true,
+                },
+                {
+                    name: "市名",
+                    layer: L.layerGroup(),
+                    checked: true,
+                    show: true,
+                },
+                {
+                    name: "区县名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "乡镇名",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+                {
+                    name: "作业点",
+                    layer: L.layerGroup(),
+                    checked: false,
+                    show: true,
+                },
+            ],
+            checked1: true,
+            checked2: true,
+            isshow: true,
+            myLegend: {
+                list: null,
+                unit: null,
+            },
+            loading: false,
+            skObj: {},
+            imageSK: null,
+            imageSite: null,
+            flag: false,
+            mySK: "",
+            mySK1: "",
+            myYB: "",
+            myYB1: "",
+            wgyb: {
+                page: 0,
+                pageIndex: 0,
+                times: [[]],
+                time: "",
+                hour: null,
+                hourList: [],
+                timeInterval: 1,
+                elements: [
+                    {
+                        id: 15,
+                        element: "TMAX",
+                        inter: "24",
+                        lvlName: "24TMP.lvl",
+                        variableName:
+                            "Maximum_temperature_height_above_ground_24_Hour_Maximum",
+                        name: "最高气温",
+                        type: "tmp",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24024.GRB2",
+                        sort: "1",
+                        checked: true,
+                    },
+                    {
+                        id: 14,
+                        element: "TMIN",
+                        inter: "24",
+                        lvlName: "24TMP.lvl",
+                        variableName:
+                            "Minimum_temperature_height_above_ground_24_Hour_Minimum",
+                        name: "最低气温",
+                        type: "tmp",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24024.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                    {
+                        id: 31,
+                        element: "EDA10",
+                        inter: "3",
+                        lvlName: "01WIN.lvl",
+                        variableName: "u-component_of_wind_height_above_ground",
+                        name: "3小时风速",
+                        type: "wind",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24003.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                    {
+                        id: 25,
+                        element: "ER03",
+                        inter: "3",
+                        lvlName: "03HOR.lvl",
+                        variableName:
+                            "Total_precipitation_surface_3_Hour_Accumulation",
+                        name: "3小时降水",
+                        type: "rain",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24003.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                    {
+                        id: 26,
+                        element: "ER24",
+                        inter: "24",
+                        lvlName: "24HOR.lvl",
+                        variableName:
+                            "Total_precipitation_surface_24_Hour_Accumulation",
+                        name: "24小时降水",
+                        type: "rain",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24024.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                    {
+                        id: 28,
+                        element: "ERH",
+                        inter: "3",
+                        lvlName: "ERH.lvl",
+                        variableName: "Relative_humidity_height_above_ground",
+                        name: "3小时相对湿度",
+                        type: "rhu",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24003.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                    {
+                        id: 29,
+                        element: "ERHA",
+                        inter: "24",
+                        lvlName: "ERH.lvl",
+                        variableName:
+                            "VAR0-1-122_FROM_38-0--1_height_above_ground_24_Hour_Maximum",
+                        name: "日最大相对湿度",
+                        type: "rhu",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24024.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                    {
+                        id: 30,
+                        element: "ERHI",
+                        inter: "24",
+                        lvlName: "ERH.lvl",
+                        variableName:
+                            "Fraction_of_snow_cover_height_above_ground_24_Hour_Minimum",
+                        name: "日最小相对湿度",
+                        type: "rhu",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "24024.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+
+                    {
+                        id: 27,
+                        element: "VIS",
+                        inter: "3",
+                        lvlName: "24VIS.lvl",
+                        variableName: "Visibility_surface",
+                        name: "能见度",
+                        type: "vis",
+                        pattern: "RFFC",
+                        region: "BEKM",
+                        suffix: "07203.GRB2",
+                        sort: "1",
+                        checked: false,
+                    },
+                ],
+                element: null,
+                inter: null,
+                imageSK: null,
+                imageSite: null,
+                pngListBABJ: [],
+                pngListBEKM: [],
+                pngidLeft: null,
+                pngidRight: null,
+            },
+        };
+    },
+    components: {
+        myLegend,
+    },
+    watch: {
+        isshow() {
+            setTimeout(() => {
+                this.map.invalidateSize(true);
+                this.map1.invalidateSize(true);
+            }, 100);
+        },
+    },
+    mounted() {
+        this.initMap();
+        this.initMap1();
+        this.contrast();
+        axios.get("./legend/PRE1.json").then((res) => {
+            this.myLegend.list = res.data.colorScale;
+        });
+        this.getMaxTime();
+    },
+    methods: {
+        initMap() {
+            // 初始化网格预报 预报间隔的数据时间
+            this.map = L.map(this.$refs["map"], {
+                center: [25.03284, 100.546904], // 地图中心
+                zoom: 8, //缩放比列
+                zoomControl: false, //禁用 + - 按钮
+                doubleClickZoom: false, // 禁用双击放大
+                attributionControl: false, // 移除右下角leaflet标识
+                zoomSnap: 0.01,
+            });
+            this.map.fitBounds([
+                [25.03284, 100.546904],
+                [23.073182, 98.668863],
+            ]);
+            this.imageBounds = [
+                [25.035, 100.545],
+                [23.015, 98.67],
+            ];
+            this.mapStyleData[0].layer.addTo(this.map);
+            this.initMapLayer();
+            var that = this;
+            this.map.on("click", function (e) {
+                let latlng = e.latlng;
+                if (that.NumberTypeSelect == "实况对比") {
+                    contrast({
+                        selData: "",
+                        time: that.Time,
+                        element:
+                            that.checkedEle != null
+                                ? that.checkedEle.value
+                                : that.element,
+                        lat: latlng.lat,
+                        lon: latlng.lng,
+                    }).then((res) => {
+                        if (res.data.d == null) {
+                            this.$message.error(res.data.o);
+                        } else {
+                            L.popup()
+                                .setLatLng(e.latlng)
+                                .setContent(
+                                    "" + Number(res.data.d.site).toFixed(1)
+                                )
+                                .openOn(that.map);
+                            getForecastInfo({
+                                lat: latlng.lat,
+                                lon: latlng.lng,
+                                id: that.skObj.id,
+                            }).then((res) => {
+                                L.popup()
+                                    .setLatLng(e.latlng)
+                                    .setContent("" + res.data.records[0])
+                                    .openOn(that.map1);
+                            });
+                        }
+                    });
+                } else {
+                    if (that.wgyb.pngidLeft != null) {
+                        getForecastInfoYb({
+                            lat: latlng.lat,
+                            lon: latlng.lng,
+                            id: that.wgyb.pngidLeft,
+                            type: "check",
+                        }).then((res) => {
+                            L.popup()
+                                .setLatLng(e.latlng)
+                                .setContent("" + res.data.records.value)
+                                .openOn(that.map);
+                        });
+                    }
+                    if (that.wgyb.pngidRight != null) {
+                        getForecastInfoYb({
+                            lat: latlng.lat,
+                            lon: latlng.lng,
+                            id: that.wgyb.pngidRight,
+                            type: "check",
+                        }).then((res) => {
+                            L.popup()
+                                .setLatLng(e.latlng)
+                                .setContent("" + res.data.records.value)
+                                .openOn(that.map1);
+                        });
+                    }
+                }
+            });
+            this.map.on("popupclose", (e) => {
+                that.map1.closePopup();
+            });
+            this.map.on("zoomend", (e) => {
+                if (this.flag) {
+                    return;
+                } else {
+                    let scale = e.target.getZoom();
+                    that.map1.setZoom(scale);
+                }
+            });
+            this.map.on("mousedown", (e) => {
+                this.map.dragging.disable();
+            });
+        },
+        initMap1() {
+            // 初始化网格预报 预报间隔的数据时间
+            this.map1 = L.map(this.$refs["map1"], {
+                center: [25.03284, 100.546904], // 地图中心
+                zoom: 8, //缩放比列
+                zoomControl: false, //禁用 + - 按钮
+                doubleClickZoom: false, // 禁用双击放大
+                attributionControl: false, // 移除右下角leaflet标识
+                zoomSnap: 0.01,
+            });
+            this.map1.fitBounds([
+                [25.03284, 100.546904],
+                [23.073182, 98.668863],
+            ]);
+            this.imageBounds = [
+                [25.035, 100.545],
+                [23.015, 98.67],
+            ];
+            this.mapStyleData[0].layer.addTo(this.map1);
+            this.initMapLayer1();
+            var that = this;
+            this.map1.on("click", function (e) {
+                let latlng = e.latlng;
+                if (that.NumberTypeSelect == "实况对比") {
+                    contrast({
+                        selData: "",
+                        time: that.Time,
+                        element:
+                            that.checkedEle != null
+                                ? that.checkedEle.value
+                                : that.element,
+                        lat: latlng.lat,
+                        lon: latlng.lng,
+                    }).then((res) => {
+                        if (res.data.d == null) {
+                            this.$message.error(res.data.o);
+                        } else {
+                            L.popup()
+                                .setLatLng(e.latlng)
+                                .setContent(
+                                    "" + Number(res.data.d.site).toFixed(1)
+                                )
+                                .openOn(that.map);
+                            getForecastInfo({
+                                lat: latlng.lat,
+                                lon: latlng.lng,
+                                id: that.skObj.id,
+                            }).then((res) => {
+                                L.popup()
+                                    .setLatLng(e.latlng)
+                                    .setContent("" + res.data.records[0])
+                                    .openOn(that.map1);
+                            });
+                        }
+                    });
+                } else {
+                    if (that.wgyb.pngidRight != null) {
+                        getForecastInfoYb({
+                            lat: latlng.lat,
+                            lon: latlng.lng,
+                            id: that.wgyb.pngidRight,
+                            type: "check",
+                        }).then((res) => {
+                            L.popup()
+                                .setLatLng(e.latlng)
+                                .setContent("" + res.data.records.value)
+                                .openOn(that.map1);
+                        });
+                    }
+                    if (that.wgyb.pngidLeft != null) {
+                        getForecastInfoYb({
+                            lat: latlng.lat,
+                            lon: latlng.lng,
+                            id: that.wgyb.pngidLeft,
+                            type: "check",
+                        }).then((res) => {
+                            L.popup()
+                                .setLatLng(e.latlng)
+                                .setContent("" + res.data.records.value)
+                                .openOn(that.map);
+                        });
+                    }
+                }
+            });
+            this.map1.on("popupclose", (e) => {
+                that.map.closePopup();
+            });
+            this.map1.on("zoomend", (e) => {
+                if (this.flag) {
+                    return;
+                } else {
+                    let scale = e.target.getZoom();
+                    that.map.setZoom(scale);
+                }
+            });
+            this.map1.on("mousedown", (e) => {
+                this.map1.dragging.disable();
+            });
+        },
+        initMapLayer() {
+            // 初始化地图图层
+            // 市边界
+            this.mapLayer[0].layer = L.geoJSON(cityJSON, {
+                style: () => {
+                    return this.mapLayer[0].style;
+                },
+                pane: "tilePane",
+            });
+            this.Selection.map((item) => {
+                // 区县界
+                if (item.code == 530900) {
+                    return;
+                } else {
+                    let countyData = require(`@/assets/map/${item.code}/${item.code}.json`);
+                    let countyLayer = L.geoJSON(countyData, {
+                        style: () => {
+                            return this.mapLayer[1].style;
+                        },
+                        pane: "tilePane",
+                    });
+                    countyLayer.addTo(this.mapLayer[1].layer);
+
+                    //区县名
+                    let countyLatlng = countyLayer.getBounds().getCenter();
+                    let countyMarker = L.marker(
+                        [countyLatlng.lat, countyLatlng.lng],
+                        {
+                            icon: L.divIcon({
+                                className: "mapCityName",
+                                html: "<span>" + item.label + "</span>",
+                                iconSize: [40, 20],
+                                iconAnchor: [20, 10],
+                            }),
+                            pane: "tilePane",
+                        }
+                    );
+                    countyMarker.addTo(this.mapLayer[4].layer);
+                }
+            });
+
+            // 将配置好的地图图层叠加到地图上
+            this.mapLayer.forEach((item) => {
+                item.layer.addTo(this.map);
+            });
+        },
+        initMapLayer1() {
+            // 初始化地图图层
+            // 市边界
+            this.mapLayer1[0].layer = L.geoJSON(cityJSON, {
+                style: () => {
+                    return this.mapLayer1[0].style;
+                },
+                pane: "tilePane",
+            });
+            this.Selection.map((item) => {
+                // 区县界
+                if (item.code == 530900) {
+                    return;
+                } else {
+                    let countyData = require(`@/assets/map/${item.code}/${item.code}.json`);
+                    let countyLayer = L.geoJSON(countyData, {
+                        style: () => {
+                            return this.mapLayer1[1].style;
+                        },
+                        pane: "tilePane",
+                    });
+                    countyLayer.addTo(this.mapLayer1[1].layer);
+
+                    //区县名
+                    let countyLatlng = countyLayer.getBounds().getCenter();
+                    let countyMarker = L.marker(
+                        [countyLatlng.lat, countyLatlng.lng],
+                        {
+                            icon: L.divIcon({
+                                className: "mapCityName",
+                                html: "<span>" + item.label + "</span>",
+                                iconSize: [40, 20],
+                                iconAnchor: [20, 10],
+                            }),
+                            pane: "tilePane",
+                        }
+                    );
+                    countyMarker.addTo(this.mapLayer1[4].layer);
+                }
+            });
+
+            // 将配置好的地图图层叠加到地图上
+            this.mapLayer1.forEach((item) => {
+                item.layer.addTo(this.map1);
+            });
+        },
+        SelectionChange() {
+            this.Selection.forEach((it) => {
+                if (this.SelectCity == it.code) {
+                    if (this.layer != null) {
+                        this.map.removeLayer(this.layer);
+                    }
+                    if (this.layer1 != null) {
+                        this.map1.removeLayer(this.layer1);
+                    }
+                    if (this.maskLeayer != null) {
+                        this.map.removeLayer(this.maskLeayer);
+                    }
+                    if (this.maskLeayer1 != null) {
+                        this.map1.removeLayer(this.maskLeayer1);
+                    }
+                    this.flag = true;
+                    this.map.fitBounds(it.bound); // 将范围移动到区县
+                    this.map1.fitBounds(it.bound); // 将范围移动到区县
+                    let sjdata =
+                        it.code == "530900"
+                            ? require(`@/assets/map/${it.code}.json`)
+                            : require(`@/assets/map/${it.code}/${it.code}.json`);
+                    this.layer = L.geoJson(sjdata, {
+                        color: "#3e87f4",
+                        weight: 3,
+                        fill: false,
+                        zIndex: 0,
+                        pane: "shadowPane",
+                    });
+                    this.layer1 = L.geoJson(sjdata, {
+                        color: "#3e87f4",
+                        weight: 3,
+                        fill: false,
+                        zIndex: 0,
+                        pane: "shadowPane",
+                    });
+                    this.layer.addTo(this.map);
+                    this.layer1.addTo(this.map1);
+                    // 给地图周边添加白色遮罩层
+                    var pNW = { lat: 59.0, lng: 73.0 };
+                    var pNE = { lat: 59.0, lng: 136.0 };
+                    var pSE = { lat: 3.0, lng: 136.0 };
+                    var pSW = { lat: 3.0, lng: 73.0 }; //向数组中添加一次闭合多边形，并将西北角再加一次作为之后画闭合区域的起点
+                    var pArray = [];
+                    pArray.push(pNW);
+                    pArray.push(pSW);
+                    pArray.push(pSE);
+                    pArray.push(pNE);
+                    pArray.push(pNW); //循环添加各闭合区域
+                    let dater = sjdata.geometries[0].coordinates;
+                    for (var i = 0; i < dater.length; i++) {
+                        var points = [];
+                        $.each(dater[i], function (k, v) {
+                            points.push({ lat: v[1], lng: v[0] });
+                        }); //将闭合区域加到遮蔽层上，每次添加完后要再加一次西北角作为下次添加的起点和最后一次的终点
+                        pArray = pArray.concat(points);
+                        pArray.push(pArray[0]);
+                    } //添加遮蔽层
+                    this.maskLeayer = L.polygon(pArray, {
+                        color: "transparent",
+                        fillColor: "#FFF",
+                        fillOpacity: 2,
+                    }); //建立多边形覆盖物
+                    this.maskLeayer1 = L.polygon(pArray, {
+                        color: "transparent",
+                        fillColor: "#FFF",
+                        fillOpacity: 2,
+                    }); //建立多边形覆盖物
+                    this.map.invalidateSize();
+                    this.maskLeayer.addTo(this.map);
+                    this.map1.invalidateSize();
+                    this.maskLeayer1.addTo(this.map1);
+                }
+            });
+        },
+        contrast() {
+            if (this.NumberTypeSelect == "实况对比") {
+                this.map.closePopup();
+                this.map1.closePopup();
+                if (this.imageSK != null) {
+                    this.map1.removeLayer(this.imageSK);
+                    this.imageSK = null;
+                }
+                if (this.imageSite != null) {
+                    this.map.removeLayer(this.imageSite);
+                    this.imageSite = null;
+                }
+                this.loading = true;
+                contrast({
+                    selImg: "",
+                    time: this.Time,
+                    element:
+                        this.checkedEle != null
+                            ? this.checkedEle.value
+                            : this.element,
+                }).then((res) => {
+                    this.loading = false;
+                    let myLegend =
+                        this.checkedEle != null
+                            ? this.checkedEle.value
+                            : this.element;
+                    switch (myLegend) {
+                        case "ER01":
+                            axios.get("./legend/PRE1.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            break;
+
+                        case "TAIR":
+                            axios.get("./legend/TMP.json").then((res) => {
+                                res.data.colorScale.map((item) => {
+                                    item.value = Number(
+                                        item.value - 273.15
+                                    ).toFixed();
+                                });
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            break;
+                        case "QAIR":
+                            axios.get("./legend/ERH.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            break;
+                        case "uv":
+                            axios.get("./legend/WIN.json").then((res) => {
+                                this.myLegend.list = res.data.colorScale;
+                            });
+                            break;
+                        default:
+                            break;
+                    }
+                    if (res.data.d == null) {
+                        this.$message.error(res.data.o);
+                    } else {
+                        if (!res.data.d.sk) {
+                            this.mySK1 = "（无数据）";
+                        } else {
+                            this.mySK = "";
+                            var imageUrlsk =
+                                "http://172.24.97.251:8082/" + res.data.d.sk;
+                            var zIndex = -99;
+                            this.imageSK = L.imageOverlay(
+                                imageUrlsk,
+                                this.imageBounds,
+                                zIndex
+                            ).addTo(this.map1);
+                        }
+
+                        var imageUrlsite =
+                            "http://172.24.97.251:8082/" + res.data.d.site;
+                        var zIndex = -99;
+                        this.imageSite = L.imageOverlay(
+                            imageUrlsite,
+                            this.imageBounds,
+                            zIndex
+                        ).addTo(this.map);
+                        this.skObj = res.data.d.skObj;
+                    }
+                });
+            } else {
+                this.map.closePopup();
+                this.map1.closePopup();
+                if (this.imageSK != null) {
+                    this.map1.removeLayer(this.imageSK);
+                    this.imageSK = null;
+                }
+                if (this.imageSite != null) {
+                    this.map.removeLayer(this.imageSite);
+                    this.imageSite = null;
+                }
+                this.loading = true;
+                this.getContrastList();
+            }
+        },
+        btnClick() {
+            this.isshow = !this.isshow;
+        },
+        handleCheckedRolesChange(ele) {
+            this.checkedEle = ele;
+            this.elements.forEach((item) => {
+                if (item.value == ele.value) {
+                    item.checked = true;
+                } else {
+                    item.checked = false;
+                }
+            });
+        },
+        handleCheckedRolesChangeYB(ele) {
+            this.wgyb.element = ele.element;
+            this.wgyb.inter = ele.inter;
+            this.wgyb.timeInterval = Number(ele.inter);
+            this.initWgybInterVal();
+            this.wgyb.elements.forEach((item) => {
+                if (item.element == ele.element) {
+                    item.checked = true;
+                } else {
+                    item.checked = false;
+                }
+            });
+            this.getMaxTime();
+        },
+        // 下载功能  --》 图片
+        ImgDownLoad() {
+            this.$confirm("此操作将保存图片, 是否继续?", "提示", {
+                confirmButtonText: "确定",
+                cancelButtonText: "取消",
+                type: "warning",
+            })
+                .then(() => {
+                    var vv = this.$refs.footer;
+                    console.log(vv);
+                    domtoimage.toPng(vv).then((dataUrl) => {
+                        //保存图片
+                        var save_link = document.createElementNS(
+                            "http://www.w3.org/1999/xhtml",
+                            "a"
+                        );
+                        save_link.href = dataUrl;
+                        save_link.download = "网格实况和站点实况对比分析.png";
+                        var event = document.createEvent("MouseEvents");
+                        event.initMouseEvent(
+                            "click",
+                            true,
+                            false,
+                            window,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            false,
+                            false,
+                            false,
+                            false,
+                            0,
+                            null
+                        );
+                        save_link.dispatchEvent(event);
+                        // var alink = document.createElement("a");
+                        // alink.href = dataUrl;
+                        // alink.download = ""; //图片名
+                        // alink.click();
+                    });
+                })
+                .catch(() => {
+                    this.$message({
+                        type: "info",
+                        message: "已取消保存",
+                    });
+                });
+        },
+        initWgybInterVal() {
+            // 初始化网格预报 预报间隔的数据时间
+            this.wgyb.page = 0;
+            this.wgyb.pageIndex = 0;
+            if (this.wgyb.time != "") {
+                let startTime = new Date(
+                    this.wgyb.time.getTime() /*  +
+                        1000 * 60 * 60 * parseInt(this.wgyb.hour) */
+                );
+                let hour = 0;
+                let data = [];
+                let num = 0;
+                this.wgyb.times = [];
+
+                while (hour <= 240) {
+                    hour += this.wgyb.timeInterval;
+                    startTime = new Date(
+                        startTime.getTime() +
+                            1000 * 60 * 60 * this.wgyb.timeInterval
+                    );
+                    data.push(startTime);
+                    num++;
+                    if (num == 8) {
+                        num = 0;
+                        this.wgyb.times.push(data);
+                        data = [];
+                    }
+                }
+                if (num != 0) {
+                    this.wgyb.times.push(data);
+                }
+            }
+        },
+        getMaxTime() {
+            getMaxTime({
+                element: this.wgyb.element
+                    ? this.wgyb.element
+                    : this.wgyb.elements[0]["element"],
+                inter: this.wgyb.inter
+                    ? this.wgyb.inter
+                    : this.wgyb.elements[0]["inter"],
+            }).then((res) => {
+                if (res.data.state == 200) {
+                    this.wgyb.time = new Date(res.data.records);
+                } else {
+                    this.wgyb.time = new Date();
+                }
+                this.getQbTimeGroup();
+            });
+        },
+        // 查询要素多个时次
+        getQbTimeGroup() {
+            let time;
+            this.wgyb.hourList = [];
+            getQbTimeGroup({
+                element: this.wgyb.element
+                    ? this.wgyb.element
+                    : this.wgyb.elements[0]["element"],
+                type: "BEKM",
+                inter: this.wgyb.inter
+                    ? this.wgyb.inter
+                    : this.wgyb.elements[0]["inter"],
+                time: parseTime(this.wgyb.time, "yyyy-MM-dd"),
+            }).then((res) => {
+                res.data.records.map((item) => {
+                    this.wgyb.hourList.push(new Date(item).getHours());
+                    if (
+                        parseTime(this.wgyb.time, "yyyy-MM-dd hh:mm:ss") == item
+                    ) {
+                        time = new Date(item).getHours();
+                    }
+                });
+                this.wgyb.hour = time;
+            });
+        },
+        // 数据类型切换
+        changeSelectType() {
+            if (this.NumberTypeSelect == "预报对比") {
+                this.map.closePopup();
+                this.map1.closePopup();
+                if (this.imageSK != null) {
+                    this.map1.removeLayer(this.imageSK);
+                    this.imageSK = null;
+                }
+                if (this.imageSite != null) {
+                    this.map.removeLayer(this.imageSite);
+                    this.imageSite = null;
+                }
+                this.initWgybInterVal();
+                this.getContrastList();
+            } else {
+                this.map.closePopup();
+                this.map1.closePopup();
+                if (this.wgyb.imageSK != null) {
+                    this.map.removeLayer(this.wgyb.imageSK);
+                    this.wgyb.imageSK = null;
+                }
+                if (this.wgyb.imageSite != null) {
+                    this.map1.removeLayer(this.wgyb.imageSite);
+                    this.wgyb.imageSite = null;
+                }
+                this.contrast();
+            }
+        },
+        wgybIntervalPage(num) {
+            this.wgyb.page += num;
+            if (this.wgyb.page < 0) {
+                this.wgyb.page = 0;
+            } else if (this.wgyb.page > this.wgyb.times.length - 1) {
+                this.wgyb.page = this.wgyb.times.length - 1;
+            }
+            this.wgyb.pageIndex = 0;
+        },
+        changeHourYb() {
+            switch (this.wgyb.hour) {
+                case 1:
+                    this.wgyb.hour = "01";
+                    break;
+                case 2:
+                    this.wgyb.hour = "02";
+                    break;
+                case 3:
+                    this.wgyb.hour = "03";
+                    break;
+                case 4:
+                    this.wgyb.hour = "04";
+                    break;
+                case 5:
+                    this.wgyb.hour = "05";
+                    break;
+                case 6:
+                    this.wgyb.hour = "06";
+                    break;
+                case 7:
+                    this.wgyb.hour = "07";
+                    break;
+                case 8:
+                    this.wgyb.hour = "08";
+                    break;
+                case 9:
+                    this.wgyb.hour = "09";
+                    break;
+
+                default:
+                    break;
+            }
+            let time =
+                parseTime(this.wgyb.time, "yyyy-MM-dd") +
+                " " +
+                this.wgyb.hour +
+                ":00:00";
+        },
+        timeBtnClick() {
+            this.wgyb.pageIndex + 1;
+            this.autoimgMapLeft();
+            this.autoimgMapRight();
+        },
+        getContrastList() {
+            let myLegend = this.wgyb.element
+                ? this.wgyb.element
+                : this.wgyb.elements[0]["element"];
+            switch (myLegend) {
+                case "TMAX":
+                    axios.get("./legend/TMP.json").then((res) => {
+                        res.data.colorScale.map((item) => {
+                            item.value = Number(item.value - 273.15).toFixed();
+                        });
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "TMIN":
+                    axios.get("./legend/TMP.json").then((res) => {
+                        res.data.colorScale.map((item) => {
+                            item.value = Number(item.value - 273.15).toFixed();
+                        });
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "ER03":
+                    axios.get("./legend/PRE3.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "ER24":
+                    axios.get("./legend/PRE24.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "ERH":
+                    axios.get("./legend/ERH.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "ERHA":
+                    axios.get("./legend/ERH.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "ERHI":
+                    axios.get("./legend/ERH.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "EDA10":
+                    axios.get("./legend/WIN.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                case "VIS":
+                    axios.get("./legend/VIS.json").then((res) => {
+                        this.myLegend.list = res.data.colorScale;
+                    });
+                    break;
+                default:
+                    break;
+            }
+            switch (this.wgyb.hour) {
+                case 1:
+                    this.wgyb.hour = "01";
+                    break;
+                case 2:
+                    this.wgyb.hour = "02";
+                    break;
+                case 3:
+                    this.wgyb.hour = "03";
+                    break;
+                case 4:
+                    this.wgyb.hour = "04";
+                    break;
+                case 5:
+                    this.wgyb.hour = "05";
+                    break;
+                case 6:
+                    this.wgyb.hour = "06";
+                    break;
+                case 7:
+                    this.wgyb.hour = "07";
+                    break;
+                case 8:
+                    this.wgyb.hour = "08";
+                    break;
+                case 9:
+                    this.wgyb.hour = "09";
+                    break;
+
+                default:
+                    break;
+            }
+            let time =
+                parseTime(this.wgyb.time, "yyyy-MM-dd") +
+                " " +
+                this.wgyb.hour +
+                ":00:00";
+            getContrastList({
+                element: this.wgyb.element
+                    ? this.wgyb.element
+                    : this.wgyb.elements[0]["element"],
+                qbTime: time,
+                inter: this.wgyb.inter
+                    ? this.wgyb.inter
+                    : this.wgyb.elements[0]["inter"],
+            }).then((res) => {
+                this.loading = false;
+                if (res.data.state != 200) {
+                    this.$message.error("请求失败");
+                } else {
+                    if (res.data.records.BABJ.length == 0) {
+                        this.myYB = "（无数据）";
+                        if (this.wgyb.imageSK != null) {
+                            this.map.removeLayer(this.wgyb.imageSK);
+                            this.wgyb.imageSK = null;
+                        }
+                    } else {
+                        this.myYB = "";
+                        this.wgyb.pngListBABJ = res.data.records.BABJ;
+                        this.autoimgMapLeft();
+                    }
+                    if (res.data.records.BEKM.length == 0) {
+                       
+                        this.myYB1 = "（无数据）";
+                        if (this.wgyb.imageSite != null) {
+                            this.map1.removeLayer(this.wgyb.imageSite);
+                            this.wgyb.imageSite = null;
+                        }
+                    } else {
+                       
+                        this.myYB1 = "";
+                        this.wgyb.pngListBEKM = res.data.records.BEKM;
+                        this.autoimgMapRight();
+                    }
+                }
+            });
+        },
+        autoimgMapLeft() {
+            if (this.wgyb.imageSK != null) {
+                this.map.removeLayer(this.wgyb.imageSK);
+                this.wgyb.imageSK = null;
+            }
+            if (this.wgyb.pngListBABJ.length != 0) {
+                this.wgyb.pngidLeft =
+                    this.wgyb.pngListBABJ[this.wgyb.pageIndex].id;
+                var imageUrlsk =
+                    "http://172.24.97.251:8082/" +
+                    "grid_yb/" +
+                    this.wgyb.pngListBABJ[this.wgyb.pageIndex].year +
+                    "/" +
+                    this.wgyb.pngListBABJ[this.wgyb.pageIndex].month +
+                    "/" +
+                    this.wgyb.pngListBABJ[this.wgyb.pageIndex].day +
+                    "/" +
+                    this.wgyb.pngListBABJ[this.wgyb.pageIndex].pngName;
+                var zIndex = -99;
+                this.wgyb.imageSK = L.imageOverlay(
+                    imageUrlsk,
+                    this.imageBounds,
+                    zIndex
+                ).addTo(this.map);
+            } else {
+                this.wgyb.pngListBABJ = [];
+                this.wgyb.pngidLeft = null;
+            }
+        },
+        autoimgMapRight() {
+            if (this.wgyb.imageSite != null) {
+                this.map1.removeLayer(this.wgyb.imageSite);
+                this.wgyb.imageSite = null;
+            }
+            if (this.wgyb.pngListBEKM.length != 0) {
+                this.wgyb.pngidRight =
+                    this.wgyb.pngListBEKM[this.wgyb.pageIndex].id;
+                var imageUrlsite =
+                    "http://172.24.97.251:8082/" +
+                    "grid_yb/" +
+                    this.wgyb.pngListBEKM[this.wgyb.pageIndex].year +
+                    "/" +
+                    this.wgyb.pngListBEKM[this.wgyb.pageIndex].month +
+                    "/" +
+                    this.wgyb.pngListBEKM[this.wgyb.pageIndex].day +
+                    "/" +
+                    this.wgyb.pngListBEKM[this.wgyb.pageIndex].pngName;
+                var zIndex = -99;
+                this.wgyb.imageSite = L.imageOverlay(
+                    imageUrlsite,
+                    this.imageBounds,
+                    zIndex
+                ).addTo(this.map1);
+            } else {
+                this.wgyb.pngListBEKM = [];
+                this.wgyb.pngidRight = null;
+            }
+        },
+    },
+};
+</script>
+
+<style lang="less" scoped>
+.historyCompareMain {
+    height: 100%;
+    display: flex;
+    background: #f5f6f7;
+    & .box_card {
+        width: calc(100% - 320px);
+        margin: 16px;
+    }
+    & .box_card1 {
+        width: 100%;
+        margin: 16px;
+    }
+    ::v-deep.el-card__body {
+        height: 100%;
+        padding-top: 5px;
+    }
+    .contentTop {
+        margin-bottom: 20px;
+    }
+    /* ::v-deep.el-checkbox__inner::after {
+        top: 1px;
+        left: 4px;
+    } */
+    ::v-deep.el-checkbox__input.is-checked .el-checkbox__inner,
+    .el-checkbox__input.is-indeterminate .el-checkbox__inner {
+        border-color: #025df4;
+        background-color: #025df4;
+    }
+    ::v-deep.el-radio__input.is-checked .el-radio__inner {
+        border-color: #025df4;
+        background-color: #025df4;
+    }
+    ::v-deep.el-date-editor.el-input,
+    .el-date-editor.el-input__inner {
+        width: 193px;
+        margin-left: 15px;
+    }
+    .leftBox {
+        width: 320px;
+        height: 100%;
+        background: #ffffff;
+        position: relative;
+        .firstbox {
+            width: 36px;
+            height: 64px;
+            background: #5e76aa;
+            box-shadow: 0px 0px 10px 0px #c9c9c9;
+            border-radius: 0px 4px 4px 0px;
+            position: absolute;
+            top: 12%;
+            right: -36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            align-content: space-between;
+            flex-direction: column;
+            justify-content: space-evenly;
+            span {
+                width: 28px;
+                height: 20px;
+                font-size: 14px;
+                font-family: PingFangSC-Regular, PingFang SC;
+                font-weight: 400;
+                color: #ffffff;
+                line-height: 20px;
+            }
+        }
+        .secondbox {
+            width: 36px;
+            height: 64px;
+            background: #3168ec;
+            border-radius: 0px 4px 4px 0px;
+            position: absolute;
+            top: 19%;
+            right: -36px;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            span {
+                font-size: 14px;
+                font-family: PingFangSC-Regular, PingFang SC;
+                font-weight: 400;
+                color: #ffffff;
+                line-height: 20px;
+            }
+        }
+    }
+    .SeletEle {
+        padding: 16px;
+        .flex {
+            display: flex;
+            align-items: center;
+            label {
+                width: 56px;
+                height: 20px;
+                font-size: 14px;
+                font-family: PingFangSC-Medium, PingFang SC;
+                font-weight: 500;
+                color: #333333;
+                line-height: 20px;
+            }
+        }
+        div {
+            display: flex;
+            label {
+                width: 56px;
+                height: 20px;
+                font-size: 14px;
+                font-family: PingFangSC-Medium, PingFang SC;
+                font-weight: 500;
+                color: #333333;
+                line-height: 20px;
+            }
+            .Seletbox {
+                width: 73%;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                margin-left: 15px;
+            }
+            .el-radio-group {
+                width: 73%;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                margin-left: 15px;
+            }
+            .el-radio {
+                margin-right: 12px;
+                margin-top: 10px;
+            }
+        }
+        .wgybDayHour {
+            margin: 10px 0;
+        }
+        .wgybDayHour ul {
+            padding: 0;
+            margin: 0;
+            display: inline-block;
+            list-style: none;
+            width: 235px;
+        }
+
+        .wgybDayHour ul li {
+            display: inline-block;
+            margin: 0 1px;
+            cursor: pointer;
+            font-size: 12px !important;
+        }
+
+        .wgybDayHour ul li .timeDay {
+            display: block;
+            border-left: 1px solid #adb3bb;
+            font-size: 12px !important;
+            color: #5b707f;
+            line-height: 16px;
+            font-weight: 400;
+            text-align: center;
+        }
+
+        .wgybDayHour ul li .timeHour {
+            color: #5b707f;
+            letter-spacing: 0;
+            text-align: justify;
+            line-height: 24px;
+            font-weight: 400;
+            width: 27px;
+            height: 24px;
+            background: #ebeef1;
+            border-radius: 4px;
+            display: block;
+            text-align: center;
+        }
+        .wgybDayHour ul li.active .timeHour {
+            background: #3e87f4;
+            color: #fff;
+        }
+
+        .wgybDayHour > span {
+            text-align: center;
+            display: inline-block;
+            position: relative;
+            padding-top: 20px;
+            color: #333333;
+            font-weight: 400;
+            margin: 0 10px;
+            cursor: pointer;
+        }
+
+        .wgybDayHour > span i {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 25px;
+        }
+
+        .wgybDayHour {
+            user-select: none;
+        }
+    }
+    .leftBox1 {
+        width: 0px;
+        height: 100%;
+        background: #ffffff;
+        position: relative;
+    }
+    .firstbox1 {
+        width: 36px;
+        height: 64px;
+        background: #5e76aa;
+        box-shadow: 0px 0px 10px 0px #c9c9c9;
+        border-radius: 0px 4px 4px 0px;
+        position: absolute;
+        top: 12%;
+        left: 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        align-content: space-between;
+        flex-direction: column;
+        justify-content: space-evenly;
+        span {
+            width: 28px;
+            height: 20px;
+            font-size: 14px;
+            font-family: PingFangSC-Regular, PingFang SC;
+            font-weight: 400;
+            color: #ffffff;
+            line-height: 20px;
+        }
+    }
+    .secondbox1 {
+        width: 36px;
+        height: 64px;
+        background: #3168ec;
+        border-radius: 0px 4px 4px 0px;
+        position: absolute;
+        top: 19%;
+        left: 0;
+        display: flex;
+        align-items: center;
+        text-align: center;
+        cursor: pointer;
+        span {
+            font-size: 14px;
+            font-family: PingFangSC-Regular, PingFang SC;
+            font-weight: 400;
+            color: #ffffff;
+            line-height: 20px;
+        }
+    }
+    .contentRight {
+        height: 100%;
+        .header {
+            height: 45px;
+            line-height: 45px;
+            font-size: 16px;
+            font-family: PingFangSC-Medium, PingFang SC;
+            font-weight: 900;
+            color: #000458;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            .mybutton {
+                width: 80px;
+                height: 32px;
+                background: #21a97a;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                justify-content: center;
+                img {
+                    width: 13px;
+                    height: 13px;
+                }
+                span {
+                    font-size: 14px;
+                    font-family: PingFangSC-Regular, PingFang SC;
+                    font-weight: 400;
+                    color: #ffffff;
+                    line-height: 22px;
+                    margin-left: 5px;
+                }
+            }
+        }
+        .footer {
+            height: calc(100% - 45px);
+            display: flex;
+            .firstbox {
+                height: calc(100%);
+                width: 50%;
+                border: 1px solid #ccc;
+                position: relative;
+            }
+            .secondbox {
+                height: calc(100%);
+                width: 50%;
+                border: 1px solid #ccc;
+                position: relative;
+            }
+            .myLegend {
+                height: 240px;
+                background: rgba(241, 243, 248, 0.8);
+                border: 1px solid #ececec;
+                border-radius: 4px;
+                position: absolute;
+                right: 15px;
+                bottom: 15px;
+                z-index: 1001;
+            }
+            .header {
+                position: absolute;
+                left: 50%;
+                top: 20px;
+                z-index: 1001;
+                margin-left: -50px;
+            }
+        }
+        .el-checkbox__inner::after {
+            top: 4px;
+            left: 1px;
+        }
+    }
+}
+</style>

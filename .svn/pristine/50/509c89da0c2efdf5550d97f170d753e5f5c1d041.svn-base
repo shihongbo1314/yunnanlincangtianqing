@@ -1,0 +1,377 @@
+<template>
+  <div class="historyCompareMain">
+    <el-card class="box_card">
+      <div class="contentTop">
+        <el-form :inline="true" :model="formData" class="demo-form-inline">
+          <el-form-item label="要素类型">
+            <el-select
+              v-model="elementType"
+              placeholder="请选择类型"
+              size="large"
+            >
+              <el-option
+                v-for="item in options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="要素">
+            <el-select v-model="element" placeholder="请选择要素" size="large">
+              <el-option
+                v-for="item in optionsTwo"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="站点">
+            <el-input
+              v-model="input"
+              size="large"
+              placeholder="请输入内容"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="起始日期">
+            <el-date-picker
+              v-model="formData.startTime"
+              style="margin-left: 10px"
+              type="date"
+              size="large"
+              :picker-options="pickerOptions"
+              placeholder="开始时间"
+            >
+            </el-date-picker>
+          </el-form-item>
+          <el-form-item label="结束日期">
+            <el-date-picker
+              style="margin-right: 20px"
+              v-model="formData.endTime"
+              type="date"
+              size="large"
+              :picker-options="pickerOptions"
+              placeholder="结束时间"
+            >
+            </el-date-picker>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="getData()" size="medium"
+              >查询</el-button
+            >
+          </el-form-item>
+        </el-form>
+
+        <el-divider></el-divider>
+        <el-row>
+          <el-col :span="12">
+            <el-button type="primary" plain size="medium">柱状图</el-button>
+            <el-button type="primary" plain size="medium">折线图</el-button>
+          </el-col>
+          <el-col :span="12"></el-col>
+        </el-row>
+      </div>
+      <div class="contentBottom">
+        <el-table
+          :data="tableData"
+          stripe
+          border
+          style="width: 100%"
+          class="commonTable"
+        >
+          <el-table-column prop="sid" label="站点编号" align="center">
+          </el-table-column>
+          <el-table-column prop="sidName" label="站点名称" align="center">
+          </el-table-column>
+          <el-table-column
+            prop="temAvg"
+            sortable
+            label="平均温度(℃)"
+            align="center"
+          >
+          </el-table-column>
+          <el-table-column
+            prop="temAvgYear"
+            sortable
+            label="30年平均温度(℃)"
+            align="center"
+          >
+          </el-table-column>
+          <el-table-column
+            prop="temdiffer"
+            sortable
+            label="距平值"
+            align="center"
+          >
+          </el-table-column>
+          <el-table-column
+            prop="RainMaxTime"
+            label="最大降水出现时间"
+            align="center"
+          >
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-card>
+  </div>
+</template>
+
+<script>
+import { getComparison } from "@/api/make.js";
+// import  jsonData from "@/assets/api/com.json";
+import { DateGrid } from "@/utils";
+export default {
+  name: "HistoryCompare",
+  data() {
+    return {
+      tableData: [],
+      formData: {
+        startTime: "",
+        endTime: "",
+      },
+      pickerOptions: {
+        disabledDate(time) {
+          return time.getTime()  > Date.now() - 8.64e6; //只能选择今天及今天之前的日期
+        },
+      },
+      options: [
+        {
+          value: "气温",
+          label: "气温",
+        },
+        {
+          value: "降水",
+          label: "降水",
+        },
+        {
+          value: "地温",
+          label: "地温",
+        },
+        {
+          value: "风速",
+          label: "风速",
+        },
+        {
+          value: "日数",
+          label: "日数",
+        },
+        {
+          value: "其他",
+          label: "其他",
+        },
+      ],
+      optionsTwo: [
+        {
+          value: "avgtmin",
+          label: "平均最低气温",
+        },
+        {
+          value: "avgtmax",
+          label: "平均最高气温",
+        },
+        {
+          value: "tmin",
+          label: "最低气温",
+        },
+        {
+          value: "tmax",
+          label: "最高气温",
+        },
+        {
+          value: "drange",
+          label: "日较差",
+        },
+      ],
+      elementType: "气温", // 要素类型
+      element: "", // 要素
+      input: "", // 站点
+    };
+  },
+  watch:{
+    // 监听要素类型
+    elementType(val){
+        if (val == "气温") {
+        this.optionsTwo = [
+          {
+            value: "avgtmin",
+            label: "平均最低气温",
+          },
+          {
+            value: "avgtmax",
+            label: "平均最高气温",
+          },
+          {
+            value: "tmin",
+            label: "最低气温",
+          },
+          {
+            value: "tmax",
+            label: "最高气温",
+          },
+          {
+            value: "drange",
+            label: "日较差",
+          },
+        ];
+      } else if (val == "降水") {
+        this.optionsTwo = [
+          {
+            value: "dayrain",
+            label: "日最大降水量",
+          },
+          {
+            value: "avgrain",
+            label: "日平均降水量",
+          },
+        ];
+      } else if (val == "地温") {
+        this.optionsTwo = [
+          {
+            value: "gavg",
+            label: "平均地面温度",
+          },
+          {
+            value: "gmax",
+            label: "最高地面温度",
+          },
+          {
+            value: "gmin",
+            label: "最低地面温度",
+          },
+          {
+            value: "avggmax",
+            label: "平均最高地温",
+          },
+          {
+            value: "avggmin",
+            label: "平均最低地温",
+          },
+          {
+            value: "a5",
+            label: "平均5cm地温",
+          },
+          {
+            value: "a10",
+            label: "平均10cm地温",
+          },
+          {
+            value: "a15",
+            label: "平均15cm地温",
+          },
+          {
+            value: "a20",
+            label: "平均20cm地温",
+          },
+          {
+            value: "a40",
+            label: "平均40cm地温",
+          },
+          {
+            value: "a80",
+            label: "平均80cm地温",
+          },
+          {
+            value: "a160",
+            label: "平均160cm地温",
+          },
+          {
+            value: "a320",
+            label: "平均320cm地温",
+          },
+        ];
+      } else if (val == "风速") {
+        this.optionsTwo = [
+          {
+            value: "avgwin",
+            label: "平均风速",
+          },
+          {
+            value: "maxexwin",
+            label: "极大风速",
+          },
+          {
+            value: "maxbwin",
+            label: "最大风速",
+          },
+          {
+            value: "avgwinex",
+            label: "平均极大风速",
+          },
+          {
+            value: "avgwinb",
+            label: "平均最大风速",
+          },
+        ];
+      } else if (val == "日数") {
+        this.optionsTwo = [
+          {
+            value: "tminday",
+            label: "低温日数",
+          },
+          {
+            value: "tmaxday",
+            label: "高温日数",
+          },
+          {
+            value: "raincount",
+            label: "降雨日数",
+          },
+          {
+            value: "crday",
+            label: "连续降雨日数",
+          },
+          {
+            value: "crnday",
+            label: "连续无降雨日数",
+          },
+        ];
+      } else if (val == "其他") {
+        this.optionsTwo = [
+          {
+            value: "tyear",
+            label: "30年同期温度对比",
+          },
+          {
+            value: "rain",
+            label: "30年同期降雨对比",
+          },
+          {
+            value: "hour",
+            label: "一小时最大降雨量",
+          },
+        ];
+      }
+    }
+  },
+  methods: {
+    getData() {
+      getComparison({
+        element: this.element,
+        startTime: DateGrid(this.formData.startTime, "yyyyMMdd"),
+        endTime: DateGrid(this.formData.endTime, "yyyyMMdd"),
+      }).then((res) => {
+        if (res.data.s == 1) {
+          this.tableData = res.data.d;
+        }
+      });
+    },
+  },
+};
+</script>
+
+<style lang="less" scoped>
+.historyCompareMain {
+  height: 100%;
+  padding: 16px;
+  background: #f5f6f7;
+  & .box_card {
+    height: 100%;
+  }
+  .contentTop {
+    margin-bottom: 20px;
+  }
+}
+</style>

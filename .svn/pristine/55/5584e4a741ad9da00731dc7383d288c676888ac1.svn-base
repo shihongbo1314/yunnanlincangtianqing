@@ -1,0 +1,488 @@
+/* 雷达、自动站 */
+<template>
+  <div class="radarMarker">
+    <!-- 自动站控制 -->
+    <div class="marker">
+      <el-checkbox label="自动站" v-model="station.show" @change="stationShowChange"></el-checkbox>
+      <!-- <el-button :type="station.showTrue?'primary':''" @click="stationShowDataChange(-1)" >实时站点</el-button>
+      <el-button :type="station.showTrue?'':'primary'" @click="stationShowDataChange(0)" >查询站点</el-button> -->
+      <ul class="times">
+        <li 
+          :style="'width: ' + (100/timeLiMax) + '%;'"
+          :class="timeLiIsHour(stationLiveTime, station.showHistoryIndex, index)"  
+          v-for="index in timeLiMax" :key="index"
+          @click="stationShowDataChange(index)" 
+        ></li>
+      </ul>
+    </div>
+    <!-- 雷达控制 -->
+    <div class="radar">
+      <el-checkbox label="雷达" v-model="rader.show" @change="raderShowChange_self"></el-checkbox>
+      <!-- <el-button :type="rader.showTrue?'primary':''" @click="radarShowDataChange(-1)">实时雷达</el-button>
+      <el-button :type="rader.showTrue?'':'primary'" @click="radarShowDataChange(0)">查询雷达</el-button> -->
+      <ul class="times">
+        <li 
+          :style="'width: ' + (100/timeLiMax) + '%;'"
+          :class="timeLiIsHour(raderLiveTime, rader.showHistoryIndex, index)"
+          v-for="index in timeLiMax" :key="index"
+          @mouseover="radarShowDataChange(index)" 
+        ></li>
+      </ul>
+    </div>
+    <!-- 播放控制 -->
+    <div class="playConfig">
+      <div class="playState" @click.prevent="playState = !playState">
+        <svg v-if="playState" t="1644801058999" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="12841" width="32" height="32"><path d="M665.6 204.8a65.536 65.536 0 0 0-64 63.488v485.888a64 64 0 0 0 128 0V268.8A66.048 66.048 0 0 0 665.6 204.8zM371.2 204.8A66.048 66.048 0 0 0 307.2 268.8v485.888a64 64 0 0 0 127.488 0V268.8A65.536 65.536 0 0 0 371.2 204.8z" p-id="12842" fill="#ffffff"></path></svg>
+        <svg v-else t="1644801111466" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="13124" width="32" height="32"><path d="M819.2 484.864L307.2 157.696a40.448 40.448 0 0 0-34.304 0A29.184 29.184 0 0 0 256 184.32v650.752a33.28 33.28 0 0 0 15.872 29.184 36.352 36.352 0 0 0 15.872 5.12 51.2 51.2 0 0 0 18.432-5.12L819.2 537.6a29.184 29.184 0 0 0 15.872-26.624 28.16 28.16 0 0 0-15.872-26.112z" p-id="13125" fill="#ffffff"></path></svg>
+      </div>
+      <span>动画间隔</span>
+      <br>
+      <el-input v-model="playInterval" type="text" ></el-input>
+       秒
+    </div>
+    <!-- 刷新控制 -->
+    <div class="refreshConfig">
+      <el-button type="primary" icon="el-icon-refresh">刷新</el-button>
+      <el-checkbox :checked="autoRefresh" label="自动刷新"></el-checkbox>
+    </div>
+  </div>
+</template>
+
+<script>
+// @ is an alias to /src
+import * as L from 'leaflet'
+// import axios from "axios";
+import allStation from "../../assets/api/findAllStation.json";
+import { DateGrid } from "../../api/date.js";
+import "@panzhiyue/leaflet-canvasmarker"
+export default {
+    data(){
+        return{
+            timeLiMax : 40,
+            playState : false,
+            autoRefresh : true,
+            playInterval : 3,
+            rader : {// 雷达图
+              show : true, // 显示
+              showTrue : false, // 显示实时数据
+              showHistoryIndex : 0,
+              layer : null,
+            },
+            station : {// 自动站
+              show : false,  // 显示
+              showTrue : false, // 显示实时数据
+              showHistoryIndex : 0,
+              layer : null,
+              data : null, // 显示的数据
+            },
+           
+        }
+    },
+    props: {
+      map: {
+        type: Object,
+        default: null,
+      },
+      stationLiveTime : {// 最新数据时间
+        type : Date,
+        default: new Date(),
+      },
+      stationShowTime : { // 显示数据时间
+        type : Date,
+        default: new Date(),
+      },
+      stationShowTimeChange : { // 修改显示数据时间
+        type : Function,
+        default: function (data) {
+          // this为空
+          console.log("子组件", data, "this", this);
+        },
+      },
+      stationShowStyle : { // 站点的显示方式
+        type : Object,
+        default: null,
+      },
+
+      raderShow:{ // 雷达图显示状态
+        type : Boolean,
+        default : false
+      },
+      raderShowChange : { // 雷达图显示状态变更
+        type : Function,
+        default: function (data) {
+          // this为空
+          console.log("子组件", data, "this", this);
+        },
+      },
+      raderLiveTime : {// 最新数据时间
+        type : Date,
+        default: new Date(),
+      },
+      raderShowTime : { // 显示数据时间
+        type : Date,
+        default: new Date(),
+      },
+      raderShowTimeChange : { // 修改显示数据时间
+        type : Function,
+        default: function (data) {
+          // this为空
+          console.log("子组件", data, "this", this);
+        },
+      },
+      mapImageLayerTypeName : {
+        type : String,
+        default: null,
+      },
+      mapImageLayerTypeNameChanege : {
+        type : Function,
+        default: function (data) {
+          // this为空
+          console.log("子组件", data, "this", this);
+        },
+      }
+    },
+    watch: {
+      map(newVal) {
+        if(newVal==null){
+          return;
+        }
+        this.raderShow_self();
+      },
+      raderShowTime(newVal){ // 雷达图显示时间变动
+        if(newVal != null){
+          this.raderShow_self();
+        }
+      },
+      stationLiveTime (newVal){ // 站点显示开始时间变动
+        if(newVal != null){
+          this.station.showHistoryIndex = this.timeLiMax;
+          this.stationShowDataChange(0);
+        }
+      },
+      stationShowTime (newVal){ // 站点显示时间变动
+        if(newVal != null){
+          // this.station.showTrue = newVal.getTime() == this.stationLiveTime.getTime();
+          // this.station.showHistoryIndex = this.timeLiMax - (this.stationLiveTime.getTime() - newVal.getTime()) / 1000/60/5;
+          this.stationGetDate();
+        }
+      },
+      stationShowStyle (newVal){ // 站点显示内容变动
+        if(newVal != null){
+          this.statonShow();
+        }
+      },
+      mapImageLayerTypeName(newVal){
+        if(this.map == null || newVal == null || newVal == "雷达图"){
+          return;
+        }
+      }
+    },
+    created(){
+      // 初始化界面之前获取数据
+      this.rader.show = this.raderShow;
+      this.rader.showHistoryIndex = this.timeLiMax;
+      this.station.showHistoryIndex = this.timeLiMax;
+      this.stationGetDate();
+    },
+    mounted(){
+      // 界面显示完成后调用方法
+      this.raderShow_self();
+    },
+    methods: {
+      timeLiIsHour(time, showIndex, index){
+        var names = [];
+        if(showIndex == index){
+          names.push("active");
+        }
+        if(new Date(time.getTime() - 1000*60*5*(this.timeLiMax-index)).getMinutes()==0){
+          names.push("hour");
+        }
+        return names.join(" ");
+      },
+      raderShowChange_self(){// 雷达图显示开关
+        if(this.rader.show){
+          this.mapImageLayerTypeNameChanege("雷达图");
+          this.raderShow_self();
+        }else{
+          this.mapImageLayerTypeNameChanege(null);
+          if(this.rader.layer != null){
+            this.rader.layer.remove();
+            this.rader.layer = null;
+          }
+        }
+        this.raderShowChange(this.rader.show);
+      },
+      radarShowDataChange (index){// 雷达图 实时、历史切换
+        if(index == -1){
+          this.rader.showTrue = true;
+          this.rader.showHistoryIndex = this.timeLiMax;
+          this.raderShowTimeChange(this.raderLiveTime); // 显示最新数据时间
+          return;
+        }else if(index == 0){
+          this.rader.showTrue = false;
+          return;
+        }else{
+          if(!this.rader.showTrue){
+            this.rader.showHistoryIndex = index;
+          }
+        }
+        this.raderShowTimeChange(new Date(this.raderLiveTime - 1000*60*5*(this.timeLiMax-this.rader.showHistoryIndex))); // 显示选中时间
+      },
+      raderShow_self (){
+        if(!this.rader.show || this.map == null){
+          return;
+        }
+        let timeStr = DateGrid(this.raderShowTime, 'yyyyMMddHHmmss');
+        let url = 'http://58.59.29.50:11016/proxy/10.76.34.76/MapCache/googleMap/M4/m4_radarCR/CR' + timeStr + '.txt_8_0000.png'
+        if(this.rader.layer == null){
+          let bounds = [[ 25.03284, 100.546904], [23.073182, 98.668863]];
+          this.rader.layer = L.imageOverlay(url, bounds, {
+              opacity: 1,
+              pane: "overlayPane",
+          })
+          this.rader.layer.addTo(this.map);
+        }else{
+          this.rader.layer.setUrl(url);
+        }
+      },
+      stationShowChange(){ // 站点显示开关
+        this.statonShow();
+      },
+      stationShowDataChange(index){ // 站点显示时间变化
+        if(index == -1){
+          this.station.showTrue = true;
+          this.stationShowTimeChange(this.stationLiveTime); // 显示最新数据时间
+          return;
+        }else if(index == 0){
+          this.station.showTrue = false;
+          return;
+        }else{
+          if(!this.station.showTrue){
+            this.station.showHistoryIndex = index;
+          }
+        }
+        this.stationShowTimeChange(new Date(this.stationLiveTime - 1000*60*5*(this.timeLiMax-this.station.showHistoryIndex))); // 显示选中时间
+      },
+      stationGetDate(){// 获取站点数据
+        if(this.stationShowTime){
+          // let times = DateGrid(this.stationShowTime, 'YYYYMMddHHmm00');
+          // let url = 'http://58.59.29.50:11016/proxy/10.76.34.76/services/api/meteodata/data?userId=admin&pwd=123456&interfaceId=getSurfEleByTime&dataCode=&elements=1.119.0.11.1,1.119.0.2.8,1.119.0.6.1,1.119.0.3.3,1.119.0.8.10,1.119.0.8.11&eleValueRanges=&limitCnt=&orderBy=&times=' + times + '&minSeparate=&hourSeparate=&staLevels='
+          let times = DateGrid(this.stationShowTime, 'mm');
+          // let url = "../../assets/api/stationSK" + (parseInt(times)/2==0?1:2) + ".json";
+          let data = require("../../assets/api/stationSK" + (parseInt(times)/2==0?1:2) + ".json")
+          this.station.data = data.data[0].data;
+          // axios.get(url).then((res) => {
+          //     console.log(res)
+          // });
+        }
+      },
+      getStationData(site){
+        for (let i = 0; i < this.station.data.length; i++) {
+          const d = this.station.data[i];
+          if(d[0] == site){
+            return d;
+          }
+        }
+        return null;
+      },
+      statonShow(){// 站点显示
+        if(this.stationShowStyle == null || this.map == null){
+          return;
+        }
+        if(!this.station.show){
+          // 关闭显示
+          if(this.station.layer){
+            this.station.layer.remove();
+            this.station.layer = null;
+          }
+          return;
+        }
+
+        // 显示站点
+        if(this.station.layer){
+          this.station.layer.remove();
+          this.station.layer = null;
+        }
+        // 创建图层
+        this.station.layer = L.canvasMarkerLayer({
+          collisionFlg: this.stationShowStyle.level
+        }).addTo(this.map);
+
+        // 定义Marker
+        var markers = [];
+     
+        allStation.forEach(item=>{
+          if((this.stationShowStyle.gjz && item.level == 13) || (this.stationShowStyle.qyz && item.level == 14)){
+            // 这个站点显示
+            let html = '';
+            var name = '';
+            var dataArray = []
+            if(this.stationShowStyle.name){
+              html += '<span class="name">' + item.name + '</span>';
+              name = item.name
+            }
+            if(this.stationShowStyle.site){
+              html += '<span class="site">' + item.station_id_c + '</span>';
+              name = item.name+'('+item.station_id_c+')'
+            }
+            if(this.stationShowStyle.point){
+              html += '<span class="point"></span>';
+            }
+            let data = this.getStationData(item.station_id_c);
+            if(data){
+              if(this.stationShowStyle.val_yl){
+                let val = data[1];
+                if(val != 0){
+                  html += '<span class="val_yl">' + val + '</span>';
+                  dataArray.push(val)
+                }
+              }
+           
+              if(this.stationShowStyle.val_wd){
+                let val = data[2];
+                html += '<span class="val_wd">' + val + '</span>';
+                dataArray.push(val)
+              }
+              var windObj = null
+              if(this.stationShowStyle.val_wind){
+                let fs = data[3];
+                let fx = 360 - parseFloat(data[4] == '9999.0'?0:data[4]);
+                let windNum = fs == '9999.0'? 0 : parseInt(parseFloat(fs) / 2);
+                if(windNum > 10){
+                  windNum+=1
+                }
+                let url = require("../../assets/img/windIcon/windIcon_" + (windNum > 9 ? windNum : '0' + windNum) + ".png")
+                html += '<span class="val_wind"><img style="transform: rotate(' + fx + 'deg);" src="' + url + '"></span>';
+
+                windObj = {
+                  imgUrl:  url,
+                  rotate: fx 
+                }
+              }
+              if(this.stationShowStyle.val_njd){
+                let val = data[5];
+                html += '<span class="val_njd">' + val + '</span>';
+                dataArray.push(val)
+              }
+            }
+            var marker = L.marker([item.lat, item.lon], {
+              icon: L.icon({
+                iconSize: [20, 34],
+                iconAnchor: [10, 17],
+                windObj: windObj,
+                iconUrl: windObj?windObj.imgUrl:null,
+                name: name,
+                dataArray: dataArray
+              }),
+              zIndex: 2
+            });
+            markers.push(marker);
+          }
+        })
+         // 把marker添加到图层
+        this.station.layer.addLayers(markers);
+        this.station.layer._reset();
+      }
+    },
+}
+</script>
+<style scoped>
+.radarMarker{
+  position: relative;
+  padding: 1px 10px 0;
+  user-select: none;;
+}
+ul.times {
+    padding: 0;
+    margin: 4px 0;
+    list-style: none;
+    height: 20px;
+    width: calc(100% - 490px);
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+ul.times li {
+    float: left;
+    max-width: 14px;
+    height: 100%;
+    padding-right: 1px;
+    position: relative;
+    cursor: pointer;
+}
+
+ul.times li:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 4px;
+  bottom: 0;
+  background: #555;
+}
+ul.times li.hour:before {
+  background: #111;
+}
+ul.times li.active:before {
+  background: #3e87f4;
+}
+.marker >>> .el-checkbox .el-checkbox__label,
+.radar >>> .el-checkbox .el-checkbox__label{
+  width: 4.5em;
+}
+
+.radarMarker button.el-button {
+  padding: 3px;
+  margin: 2px 8px 2px 0;
+}
+.radarMarker button.el-button >>> span{
+  font-size: 14px !important;
+}
+
+
+.refreshConfig {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    width: 100px;
+    text-align: center;
+}
+.refreshConfig >>> button.el-button {
+  width: 84px;
+  margin: 0 0 2px;
+}
+
+.playConfig {
+  position: absolute;
+  top: 4px;
+  right: 170px;
+  text-align: center;
+}
+
+.playState {
+    display: inline-block;
+    background: #2D5A9D;
+    vertical-align: middle;
+    width: 21px;
+    height: 21px;
+    cursor: pointer;
+    margin-right: 4px;
+    margin-bottom: 6px;
+}
+
+.playConfig >>> .el-input{
+  width: 40px;
+}
+.playConfig >>> .el-input .el-input__inner{
+    line-height: 23px;
+    height: 23px;
+    text-align: center;
+    padding: 0;
+}
+.playState svg {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+}
+</style>

@@ -1,0 +1,108 @@
+<template>
+  <div>
+      <el-table
+      :data="tableData"
+      :show-header="false"
+      style="width: 100%;font-size: 16px">
+      <el-table-column
+        prop="name"
+        label="产品名称">
+      </el-table-column>
+      <el-table-column
+        prop="audit"
+        label="审核状态"
+        align="center"
+        width="80px">
+        <template #default="scope">
+            <el-checkbox :value="scope.row.audit" v-model="scope.row.audit"></el-checkbox>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="state"
+        label="产品状态"
+        align="center"
+        width="80px">
+        <template #default="scope">
+          <template v-if="scope.row.state === true">
+            <el-tooltip class="item" effect="dark" content="完成时间" placement="bottom">
+              <icon name="success" scale="2.7" style="vertical-align: middle;"></icon>
+            </el-tooltip>            
+          </template>
+          <template v-else-if="scope.row.state === false">
+            <el-tooltip class="item" effect="dark" content="失败原因" placement="bottom">
+              <icon name="fail" scale="2.7" style="vertical-align: middle;"></icon>
+            </el-tooltip>  
+          </template>
+          <template v-else>
+            <span class="emptySpan"></span>
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="往期材料"
+        align="center"
+        width="80px">
+        <template #default="scope">
+            <span class="pastSpanBtn" @click="handleSearch(scope.$index, scope.row)">查看往期</span>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+</template>
+
+<script>
+export default {
+    props: ['data'],
+    data(){
+        return{
+            tableData: []
+        }
+    },
+    created(){
+        this.tableData = []
+        for(let i=0;i<this.data;i++){
+            let obj = {}
+            obj.name = `模板模板模板${i+1}`
+            if(i<4){
+              obj.audit = true
+            }else{
+              obj.audit = false
+            }    
+            if(i==0||i==1||i==2){
+              obj.state = true
+            }else if(i==3||i==4){
+              obj.state = false
+            }else{
+              obj.state = ""
+            }        
+            
+            this.tableData.push(obj)
+        }
+    },
+    methods:{
+        handleSearch(index,row){
+
+        }
+    }
+}
+</script>
+
+<style>
+.pastSpanBtn{
+    padding: 2px 4px;
+    color:#ADB3BB;
+    border: 1px solid rgba(173,179,187,0.5);
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.emptySpan{
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(223,226,228,1);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+</style>

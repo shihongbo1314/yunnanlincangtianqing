@@ -1,0 +1,131 @@
+<template>
+    <div class="addrList">
+        <ul>
+            <li
+                v-for="(item,index) in addrList"
+                :key="item.code"
+                :class="item.code==code?'active':''"
+                @click="handleChange(index)"
+            >
+                <span>{{item.name}}</span>
+            </li>
+        </ul>
+    </div>
+</template>
+
+<script>
+import cityFullJSON from "../../assets/map/530900_full.json";
+import $ from "../../utils/jquery";
+export default {
+    props: ["map"],
+    data() {
+        return {
+            code: 530900,
+            addrList: [],
+            layer: null,
+        };
+    },
+    created() {
+        this.addrList.push({
+            name: "临沧市",
+            code: 530900,
+            bound: [
+                [25.03284, 100.546904],
+                [23.073182, 98.668863],
+            ],
+        });
+        cityFullJSON.features.forEach((item) => {
+            let obj = {};
+            let { properties: proper } = item;
+            if (proper.name.includes("自治")) {
+                obj.name = proper.name.substring(0, 2) + "县";
+            } else {
+                obj.name = proper.name;
+            }
+            obj.code = proper.adcode;
+            let layer = L.geoJSON(item.geometry);
+            obj.bound = layer.getBounds();
+            this.addrList.push(obj);
+        });
+    },
+    methods: {
+        handleChange(index) {
+            if (this.layer != null) {
+                this.map.removeLayer(this.layer);
+            }
+            this.code = this.addrList[index].code;
+            this.map.fitBounds(this.addrList[index].bound); // 将范围移动到区县
+            let sjdata = require(`../../assets/map/${this.code}/${this.code}.json`);
+            this.layer = L.geoJson(sjdata, {
+                color: "#000",
+                weight: 3,
+                fill: false,
+                zIndex: 0,
+                pane: "shadowPane",
+            });
+            this.layer.addTo(this.map);
+            // 给地图周边添加白色遮罩层
+            var pNW = { lat: 59.0, lng: 73.0 };
+            var pNE = { lat: 59.0, lng: 136.0 };
+            var pSE = { lat: 3.0, lng: 136.0 };
+            var pSW = { lat: 3.0, lng: 73.0 }; //向数组中添加一次闭合多边形，并将西北角再加一次作为之后画闭合区域的起点
+            var pArray = [];
+            pArray.push(pNW);
+            pArray.push(pSW);
+            pArray.push(pSE);
+            pArray.push(pNE);
+            pArray.push(pNW); //循环添加各闭合区域
+            let dater = sjdata.geometries[0].coordinates;
+            for (var i = 0; i < dater.length; i++) {
+                var points = [];
+                $.each(dater[i], function (k, v) {
+                    points.push({ lat: v[1], lng: v[0] });
+                }); //将闭合区域加到遮蔽层上，每次添加完后要再加一次西北角作为下次添加的起点和最后一次的终点
+                pArray = pArray.concat(points);
+                pArray.push(pArray[0]);
+            } //添加遮蔽层
+            this.maskLeayer = L.polygon(pArray, {
+                color: "transparent",
+                fillColor: "#FFF",
+                fillOpacity: 2,
+            }); //建立多边形覆盖物
+            this.map.invalidateSize();
+            this.maskLeayer.addTo(this.map);
+        },
+    },
+};
+</script>
+
+<style scoped>
+.addrList ul {
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+}
+.addrList ul:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+.addrList ul > li {
+    float: left;
+    width: calc(100% / 3);
+    padding: 5px 0;
+    text-align: center;
+}
+.addrList ul > li > span {
+    display: inline-block;
+    width: 100px;
+    padding: 5px 0;
+    border: 1px solid #dcdfe6;
+    text-align: center;
+    color: #606266;
+    cursor: pointer;
+    border-radius: 3px;
+}
+.addrList ul > li.active > span {
+    background: #3e87f4;
+    color: #fff;
+    border-color: #3e87f4;
+}
+</style>

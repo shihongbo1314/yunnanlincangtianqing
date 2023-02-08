@@ -1,0 +1,1774 @@
+<template>
+    <div style="height:100%">
+        <!-- 书签管理 -->
+        <div
+            class="right"
+            v-if="table"
+        >
+            <div class="top">
+                <el-breadcrumb separator-class="el-icon-arrow-right">
+                    <el-breadcrumb-item>作业管理</el-breadcrumb-item>
+                    <el-breadcrumb-item>产品管理</el-breadcrumb-item>
+                    <el-breadcrumb-item>书签管理</el-breadcrumb-item>
+                </el-breadcrumb>
+            </div>
+
+            <div class="content">
+                <div
+                    class="content_one"
+                    style="overflow: auto;height:calc(100% - 80px)"
+                >
+                    <div class="content_top">
+                        <span style="margin:0 8px 0 24px">书签名称</span>
+                        <el-input
+                            v-model="selectData.name"
+                            placeholder="请输入"
+                        ></el-input>
+                        <span style="margin:0 8px 0 40px">书签编号</span>
+                        <el-input
+                            v-model="selectData.id"
+                            placeholder="请输入"
+                        ></el-input>
+                        <span style="margin:0 8px 0 40px">书签类型</span>
+                        <el-select
+                            v-model="selectData.type"
+                            placeholder="请选择"
+                            clearable
+                        >
+                            <el-option
+                                v-for="item in bookmarkType"
+                                :key="item.code"
+                                :label="item.name"
+                                :value="item.code"
+                            >
+                            </el-option>
+                        </el-select>
+                        <span style="margin:0 8px 0 40px">创建人</span>
+                        <el-input
+                            v-model="selectData.cteator"
+                            placeholder="请输入"
+                        ></el-input>
+
+                        <el-button
+                            type="primary"
+                            @dblclick="initBookMarkData"
+                            @click="selectBookMarkData"
+                            style="margin-right:80px;margin-left:40px"
+                        >搜索</el-button>
+                        <el-button
+                            type="primary"
+                            icon="el-icon-plus"
+                            @click="dialogVisible = true"
+                        >新增书签</el-button>
+                    </div>
+
+                    <!-- 新增书签按钮 -->
+                    <el-dialog
+                        title="新增书签"
+                        :visible.sync="dialogVisible"
+                        width="320px"
+                        style="margin-top:19vh;"
+                        close-on-click-modal
+                    >
+                        <div class="NewBookmarks">
+                            <el-checkbox-group v-model="checkboxGroup1">
+                                <el-checkbox-button>
+                                    <icon
+                                        name="dataClass-1"
+                                        style="width:40px;height:40px"
+                                    />
+                                    <span>数据类书签</span>
+                                </el-checkbox-button>
+                            </el-checkbox-group>
+                            <el-checkbox-group v-model="checkboxGroup2">
+                                <el-checkbox-button>
+                                    <icon
+                                        name="tableClass-1"
+                                        style="width:40px;height:40px"
+                                    /><span>表格类书签</span>
+                                </el-checkbox-button>
+                            </el-checkbox-group>
+                            <el-checkbox-group
+                                v-model="checkboxGroup3"
+                                style="margin-top:16px;"
+                            >
+                                <el-checkbox-button>
+                                    <icon
+                                        name="imgClass-1"
+                                        style="width:40px;height:40px"
+                                    /><span>图片类书签</span>
+                                </el-checkbox-button>
+                            </el-checkbox-group>
+                            <el-checkbox-group v-model="checkboxGroup4">
+                                <el-checkbox-button style="margin-top:16px">
+                                    <icon
+                                        name="gifClass-1"
+                                        style="width:40px;height:40px"
+                                    /><span style="width:60px">GIF类书签</span>
+                                </el-checkbox-button>
+                            </el-checkbox-group>
+                        </div>
+                        <div>
+
+                        </div>
+                        <span
+                            slot="footer"
+                            class="dialog-footer"
+                        >
+                            <el-button @click="dialogVisible = false">取 消</el-button>
+                            <el-button
+                                type="primary"
+                                @click="NewBookmarks()"
+                            >确 定</el-button>
+                        </span>
+                    </el-dialog>
+                    <!-- 表格 -->
+                    <div class="table">
+                        <el-table
+                            :data="tablePage.showData"
+                            stripe
+                            style="width: 100%"
+                        >
+                            <el-table-column
+                                prop="num"
+                                label="序号"
+                                width="150"
+                                align="center"
+                            >
+                            </el-table-column>
+                            <el-table-column
+                                prop="name"
+                                label="书签名称"
+                            >
+                            </el-table-column>
+                            <el-table-column
+                                prop="id"
+                                label="书签编号"
+                                align="center"
+                            >
+                            </el-table-column>
+                            <el-table-column
+                                prop="typeName"
+                                label="书签类型"
+                                align="center"
+                            >
+                            </el-table-column>
+                            <el-table-column
+                                prop="creator"
+                                label="创建人"
+                                align="center"
+                            >
+                            </el-table-column>
+                            <el-table-column
+                                prop="saveTime"
+                                label="最近更新时间"
+                                align="center"
+                            >
+                            </el-table-column>
+                            <el-table-column
+                                label="操作"
+                                align="center"
+                            >
+                                <template slot-scope="scope">
+                                    <el-button
+                                        type="text"
+                                        size="small"
+                                    >编辑</el-button>
+                                    <span class="gun">丨</span>
+                                    <el-button
+                                        @click.native.prevent="deleteRow(scope.$index)"
+                                        type="text"
+                                        size="small"
+                                    >
+                                        删除
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <div class="bottom">
+                            <el-pagination
+                                :hide-on-single-page="true"
+                                layout="prev, pager, next"
+                                :total="tablePage.total"
+                                :page-size="tablePage.pageSize"
+                                :current-page.sync="tablePage.currentPage"
+                                @current-change="showPage"
+                            >
+                            </el-pagination>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- 新增书签功能 -->
+        <div
+            class="right"
+            v-if="xinzen"
+        >
+            <div class="top">
+                <el-breadcrumb separator-class="el-icon-arrow-right">
+                    <el-breadcrumb-item>作业管理</el-breadcrumb-item>
+                    <el-breadcrumb-item>产品管理</el-breadcrumb-item>
+                    <el-breadcrumb-item>新增书签</el-breadcrumb-item>
+                </el-breadcrumb>
+            </div>
+
+            <div class="content">
+                <div
+                    class="content_one"
+                    style="overflow: auto;height:calc(100% - 80px)"
+                >
+                    <el-tabs
+                        v-model="activeName"
+                        @tab-click="handleClick"
+                    >
+                        <el-tab-pane
+                            label="数据类"
+                            name="first"
+                        >
+                            <div class="shuju">
+                                <p>丨书签信息</p>
+                                <el-form>
+                                    <el-form-item label="活动名称">
+                                        <el-input
+                                            v-model="input"
+                                            style="width:840px;margin-right:24px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="创建人"
+                                        label-width="76px"
+                                    >
+                                        <el-input
+                                            v-model="input"
+                                            style="width:360px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                </el-form>
+                                <p>丨书签配置</p>
+                                <el-form style="display:flex;flex-wrap: wrap;">
+                                    <el-form-item label="数据来源">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择数据来源"
+                                            style="width:360px;margin-right:22px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="要素选择">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择要素"
+                                            style="width:353px;"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="台站位置"
+                                        style="margin-top:18px"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择台站位置"
+                                            style="width:360px;margin-right:22px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="数据处理"
+                                        style="margin-top:18px;"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择数据处理方式"
+                                            style="width:353px
+                                                margin-right:22px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="开始时间　 自动制作时间"
+                                        style="width:480px;display:flex;flex-wrap:wrap;"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="之前"
+                                            style="width:120px;margin-right:8px;
+                                                margin-left:100px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:104px;margin-right:8px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="分钟"
+                                            style="width:120px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="结束时间　 自动制作时间"
+                                        style="width:400px;display:flex;flex-wrap:wrap;"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="之前"
+                                            style="width:113px;margin-right:8px;
+                                                margin-left:102px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:104px;margin-right:8px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="分钟"
+                                            style="width:120px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-input
+                                        type="textarea"
+                                        style="width:912px;height:120px;margin-left:24px;margin-top:35px"
+                                        :autosize="{ minRows: 5, maxRows: 4}"
+                                        placeholder="书签描述："
+                                        v-model="textarea2"
+                                    >
+                                    </el-input>
+                                    <el-form-item style="width:100%;height:100%;display: flex;justify-content: space-between;margin-top:222px">
+                                        <el-button type="primary">立即创建</el-button>
+                                    </el-form-item>
+                                </el-form>
+                            </div>
+                            <div class="yulan">
+                                <p class="yulan_top">土壤墒情-博兴-40cm土壤温度</p>
+                                <span>书签编号：XXXXXXXXX</span>
+                                <div class="yulan_one">
+                                    <p class="yulan_p">丨书签信息</p>
+                                    <div class="yulan_content">
+                                        12321231231
+                                    </div>
+                                    <el-form>
+                                        <el-form-item style="width:100%;display: flex;justify-content: space-between;">
+                                            <el-button
+                                                type="primary"
+                                                style="background: #FFFFFF;color:#68A6E8;margin-right:80px"
+                                            >取消</el-button>
+                                            <el-button type="primary">保存</el-button>
+                                        </el-form-item>
+                                    </el-form>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+                        <el-tab-pane
+                            label="表格类"
+                            name="second"
+                        >
+                            <div class="shuju">
+                                <p>丨书签信息</p>
+                                <el-form>
+                                    <el-form-item label="活动名称">
+                                        <el-input
+                                            v-model="input"
+                                            style="width:840px;margin-right:24px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="创建人"
+                                        label-width="76px"
+                                    >
+                                        <el-input
+                                            v-model="input"
+                                            style="width:360px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                </el-form>
+                                <p>丨书签配置</p>
+                                <el-form style="display:flex;flex-wrap: wrap;">
+                                    <el-form-item label="数据来源">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择数据来源"
+                                            style="width:360px;margin-right:16px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="要素选择">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择要素"
+                                            style="width:360px;"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="数据处理">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择数据处理方式"
+                                            style="width:360px;"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+
+                                    <el-form-item
+                                        label="区域选择"
+                                        style="width:950px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="1">省</el-radio>
+                                            <el-radio :label="2">市</el-radio>
+                                            <el-radio :label="3">区县</el-radio>
+                                            <el-radio :label="4">省（包含下级）</el-radio>
+                                            <el-radio :label="8">市（包含下级）</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <div style="width:835px;margin-left:100px;">
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">山东省</el-button>
+                                        </el-badge>
+                                        <el-badge
+                                            :value="3"
+                                            class="item"
+                                        >
+                                            <el-button class="xuanze">济南市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">青岛市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">淄博市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">枣庄市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">东营市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">烟台市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">潍坊市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">济宁市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">泰安市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">威海市</el-button>
+                                        </el-badge>
+                                        <div class="quyu">
+                                            <div class="sanjiao"></div>
+                                            <el-checkbox-group v-model="checkboxGroup4">
+                                                <el-checkbox-button
+                                                    v-for="city in cities"
+                                                    :label="city"
+                                                    :key="city"
+                                                >{{city}}</el-checkbox-button>
+                                            </el-checkbox-group>
+                                        </div>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">日照市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">临沂市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">德州市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">聊城市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">滨州市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">菏泽市</el-button>
+                                        </el-badge>
+                                    </div>
+
+                                    <el-form-item
+                                        label="开始时间　 自动制作时间"
+                                        style="width:480px;display:flex;flex-wrap:wrap;margin-top:24px"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="之前"
+                                            style="width:120px;margin-right:8px;
+                                                margin-left:100px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:104px;margin-right:8px"
+                                            placeholder="0"
+                                        ></el-input>
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="分钟"
+                                            style="width:120px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="结束时间　 自动制作时间"
+                                        style="width:400px;display:flex;flex-wrap:wrap;margin-top:24px"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="之前"
+                                            style="width:113px;margin-right:8px;
+                                                margin-left:102px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:104px;margin-right:8px"
+                                            placeholder="0"
+                                        ></el-input>
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="分钟"
+                                            style="width:120px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="数据频次"
+                                        style="width:950px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="1">年</el-radio>
+                                            <el-radio :label="2">季</el-radio>
+                                            <el-radio :label="3">月</el-radio>
+                                            <el-radio :label="4">旬</el-radio>
+                                            <el-radio :label="5">周</el-radio>
+                                            <el-radio :label="6">日</el-radio>
+                                            <el-radio :label="7">时</el-radio>
+                                            <el-radio :label="8">分</el-radio>
+                                        </el-radio-group>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:72px;margin-left:67px"
+                                            placeholder="0"
+                                        ></el-input><span style="font-size:16px;color: #333333;margin-left:5px">分</span>
+                                    </el-form-item>
+                                    <div class="table_type">
+                                        <div class="table_type_one">
+
+                                            <el-radio
+                                                v-model="radio1"
+                                                label="1"
+                                                border
+                                            >表格1</el-radio>
+                                            <el-radio
+                                                v-model="radio1"
+                                                label="2"
+                                                border
+                                            >表格2</el-radio>
+                                            <el-radio
+                                                v-model="radio1"
+                                                label="3"
+                                                border
+                                            >表格3</el-radio>
+                                            <el-radio
+                                                v-model="radio1"
+                                                label="4"
+                                                border
+                                            >表格4</el-radio>
+                                        </div>
+                                    </div>
+
+                                    <el-input
+                                        type="textarea"
+                                        style="width:912px;height:120px;margin-left:24px;margin-top:35px"
+                                        :autosize="{ minRows: 5, maxRows: 4}"
+                                        placeholder="书签描述："
+                                        v-model="textarea2"
+                                    >
+                                    </el-input>
+                                    <el-form-item style="width:100%;height:100%;display: flex;justify-content: space-between;margin-top:22px">
+                                        <el-button type="primary">添加</el-button>
+                                    </el-form-item>
+                                </el-form>
+                            </div>
+                            <div class="yulan">
+                                <p class="yulan_top">土壤墒情-博兴-40cm土壤温度</p>
+                                <span>书签编号：XXXXXXXXX</span>
+                                <div class="yulan_one">
+                                    <p class="yulan_p">丨预览效果</p>
+                                    <el-form>
+                                        <el-form-item
+                                            label="表格风格"
+                                            style="font-size: 16px;"
+                                        >
+                                            <el-select
+                                                v-model="region"
+                                                placeholder="请选择"
+                                                style="width:360px;"
+                                            >
+                                                <el-option
+                                                    label="区域一"
+                                                    value="shanghai"
+                                                ></el-option>
+                                                <el-option
+                                                    label="区域二"
+                                                    value="beijing"
+                                                ></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                    </el-form>
+                                    <div class="yulan_content">
+                                        <el-table
+                                            border
+                                            style="width: 100%;"
+                                        >
+                                            <el-table-column label="区域">
+                                            </el-table-column>
+                                            <el-table-column label="要素">
+                                            </el-table-column>
+                                        </el-table>
+                                    </div>
+                                    <el-form>
+                                        <el-form-item style="width:100%;display: flex;justify-content: space-between;margin-top:55px">
+                                            <el-button
+                                                type="primary"
+                                                style="background: #FFFFFF;color:#68A6E8;margin-right:80px"
+                                            >取消</el-button>
+                                            <el-button type="primary">保存</el-button>
+                                        </el-form-item>
+                                    </el-form>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+                        <el-tab-pane
+                            label="图片类"
+                            name="third"
+                        >
+                            <div class="shuju">
+                                <p>丨书签信息</p>
+                                <el-form>
+                                    <el-form-item label="活动名称">
+                                        <el-input
+                                            v-model="input"
+                                            style="width:840px;margin-right:24px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="创建人"
+                                        label-width="76px"
+                                    >
+                                        <el-input
+                                            v-model="input"
+                                            style="width:360px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                </el-form>
+                                <p>丨书签配置</p>
+                                <el-form style="display:flex;flex-wrap: wrap;">
+                                    <el-form-item label="站点类型">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择"
+                                            style="width:360px;margin-right:22px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="节点层级"
+                                        style="width:360px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="3">市</el-radio>
+                                            <el-radio :label="6">县</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="选择方式"
+                                        style="width:900px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="3">单选</el-radio>
+                                            <el-radio :label="6">多选</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+
+                                    <el-form-item
+                                        label="站点选择"
+                                        style="width:950px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="1">省</el-radio>
+                                            <el-radio :label="2">市</el-radio>
+                                            <el-radio :label="3">区县</el-radio>
+                                            <el-radio :label="4">省（包含下级）</el-radio>
+                                            <el-radio :label="8">市（包含下级）</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <div style="width:835px;margin-left:100px;">
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">山东省</el-button>
+                                        </el-badge>
+                                        <el-badge
+                                            :value="3"
+                                            class="item"
+                                        >
+                                            <el-button class="xuanze">济南市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">青岛市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">淄博市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">枣庄市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">东营市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">烟台市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">潍坊市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">济宁市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">泰安市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">威海市</el-button>
+                                        </el-badge>
+                                        <div class="quyu">
+                                            <div class="sanjiao"></div>
+                                            <el-checkbox-group v-model="checkboxGroup4">
+                                                <el-checkbox-button
+                                                    v-for="city in cities"
+                                                    :label="city"
+                                                    :key="city"
+                                                >{{city}}</el-checkbox-button>
+                                            </el-checkbox-group>
+                                        </div>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">日照市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">临沂市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">德州市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">聊城市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">滨州市</el-button>
+                                        </el-badge>
+                                        <el-badge class="item">
+                                            <el-button class="xuanze">菏泽市</el-button>
+                                        </el-badge>
+                                    </div>
+                                    <p style="color: #333333;width:800px;padding-left:5px">参数设置</p>
+                                    <el-form-item
+                                        label="开始时间　 自动制作时间"
+                                        style="width:480px;display:flex;flex-wrap:wrap;"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="之前"
+                                            style="width:120px;margin-right:8px;
+                                                margin-left:100px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:104px;margin-right:8px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="分钟"
+                                            style="width:120px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="结束时间　 自动制作时间"
+                                        style="width:400px;display:flex;flex-wrap:wrap;"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="之前"
+                                            style="width:113px;margin-right:8px;
+                                                margin-left:102px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                        <el-input
+                                            v-model="input"
+                                            style="width:104px;margin-right:8px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="分钟"
+                                            style="width:120px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="查询类型"
+                                        style="width:950px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="1">逐日查询</el-radio>
+                                            <el-radio :label="2">时段查询</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="距平"
+                                        style="padding-left:30px"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择"
+                                            style="width:360px;margin-right:22px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="出图"
+                                        style="padding-left:28px"
+                                    >
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择"
+                                            style="width:360px;"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <p style="color: #333333;width:800px;padding-left:5px">要素管理</p>
+                                    <el-form-item label="要素选择">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择"
+                                            style="width:360px;margin-right:15px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="数据处理">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择数据处理方式"
+                                            style="width:360px;"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="生成图表"
+                                        style="width:950px"
+                                    >
+                                        <el-radio-group v-model="radio">
+                                            <el-radio :label="1">折线图</el-radio>
+                                            <el-radio :label="2">柱状图</el-radio>
+                                            <el-radio :label="2">色斑图</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <el-input
+                                        type="textarea"
+                                        style="width:912px;height:120px;margin-left:24px;margin-top:35px"
+                                        :autosize="{ minRows: 5, maxRows: 4}"
+                                        placeholder="书签描述："
+                                        v-model="textarea2"
+                                    >
+                                    </el-input>
+                                    <el-form-item style="width:100%;height:100%;display: flex;justify-content: space-between;margin-top:22px">
+                                        <el-button type="primary">添加</el-button>
+                                    </el-form-item>
+                                </el-form>
+                            </div>
+                            <div class="yulan">
+                                <p class="yulan_top">土壤墒情-博兴-40cm土壤温度</p>
+                                <span>书签编号：XXXXXXXXX</span>
+                                <div class="yulan_one">
+                                    <p class="yulan_p">丨预览效果</p>
+                                    <div class="yulan_content">
+                                        12321231231
+                                    </div>
+                                    <el-form>
+                                        <el-form-item style="width:100%;display: flex;justify-content: space-between;">
+                                            <el-button
+                                                type="primary"
+                                                style="background: #FFFFFF;color:#68A6E8;margin-right:80px"
+                                            >取消</el-button>
+                                            <el-button type="primary">保存</el-button>
+                                        </el-form-item>
+                                    </el-form>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+                        <el-tab-pane
+                            label="GIF图类"
+                            name="fourth"
+                        >
+                            <div class="shuju">
+                                <p>丨书签信息</p>
+                                <el-form>
+                                    <el-form-item label="书签名称">
+                                        <el-input
+                                            v-model="input"
+                                            style="width:840px;margin-right:24px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="创建人"
+                                        label-width="76px"
+                                    >
+                                        <el-input
+                                            v-model="input"
+                                            style="width:360px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                </el-form>
+                                <p>丨书签配置</p>
+                                <el-form style="display:flex;flex-wrap: wrap;">
+                                    <el-form-item label="添加图片书签">
+                                        <el-select
+                                            v-model="region"
+                                            placeholder="请选择数据来源"
+                                            style="width:808px;margin-right:22px"
+                                        >
+                                            <el-option
+                                                label="区域一"
+                                                value="shanghai"
+                                            ></el-option>
+                                            <el-option
+                                                label="区域二"
+                                                value="beijing"
+                                            ></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item
+                                        label="数据处理"
+                                        style="margin-top:18px;"
+                                    >
+                                        <el-input
+                                            v-model="input"
+                                            style="width:360px;margin-right:24px"
+                                            placeholder="请输入"
+                                        ></el-input>
+                                    </el-form-item>
+                                    <el-input
+                                        type="textarea"
+                                        style="width:912px;height:120px;margin-left:24px;margin-top:306px"
+                                        :autosize="{ minRows: 5, maxRows: 4}"
+                                        placeholder="书签描述："
+                                        v-model="textarea2"
+                                    >
+                                    </el-input>
+                                    <el-form-item style="width:100%;height:100%;display: flex;justify-content: space-between;margin-top:38px">
+                                        <el-button type="primary">添加</el-button>
+                                    </el-form-item>
+                                </el-form>
+                            </div>
+                            <div class="yulan">
+                                <p class="yulan_top">土壤墒情-博兴-40cm土壤温度</p>
+                                <span>书签编号：XXXXXXXXX</span>
+                                <div class="yulan_one">
+                                    <p class="yulan_p">丨书签信息</p>
+                                    <div class="yulan_content">
+                                        12321231231
+                                    </div>
+                                    <el-form>
+                                        <el-form-item style="width:100%;display: flex;justify-content: space-between;">
+                                            <el-button
+                                                type="primary"
+                                                style="background: #FFFFFF;color:#68A6E8;margin-right:80px"
+                                            >取消</el-button>
+                                            <el-button type="primary">保存</el-button>
+                                        </el-form-item>
+                                    </el-form>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+                    </el-tabs>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import axios from "axios";
+const area = [
+    "历下区",
+    "市中区",
+    "天桥区",
+    "历城区",
+    "槐荫区",
+    "长清区",
+    "章丘区",
+    "济阳区",
+    "莱芜区",
+    "钢城区",
+    "平阴县",
+    "商河县",
+];
+export default {
+    data() {
+        return {
+            shuqian: false,
+            xinzen: false,
+            table: true,
+            checkboxGroup1: [],
+            checkboxGroup2: [],
+            checkboxGroup3: [],
+            checkboxGroup4: [],
+            selectData : {
+                name : '',
+                id : '',
+                type : '',
+                cteator : '',
+            },
+            region: "",
+            textarea2: "",
+            radio: 8,
+            radio1: "",
+            value: "",
+            bookmarkType : [], // 书签类型
+            tablePage : { // 表格分页
+                allData : [], // 所有数据
+                selectData : [], // 查询的数据
+                showData : [], // 当前显示的数据
+                total : 0, // 总条目数
+                pageSize : 15, // 每页显示的数量
+                currentPage : 1, // 当前页
+            },
+            cities: area,
+            dialogVisible: false,
+            newTemplate: false,
+            activeName: "first",
+        };
+    },
+    created() {
+        // 初始化界面之前获取数据
+        this.initBookMarkType();
+    },
+    mounted() {
+        // 界面显示完成后调用方法
+    },
+    methods: {
+        initBookMarkType(){ // 初始化书签类型
+            let url = this.$baseIP + "/sd_product/prod/bookmark/type/list";
+            axios.get(url).then((res) => {
+                if(res.status == 200 && res.data.state == 200){
+                    this.bookmarkType = res.data.records;
+                    this.initBookMarkData();
+                }
+            })      
+        },
+        getBookMarkType(code){
+            for (let i = 0; i < this.bookmarkType.length; i++) {
+                if(this.bookmarkType[i].code == code){
+                    return this.bookmarkType[i].name;
+                }
+            }
+            return code;
+        },
+        initBookMarkData(){ // 初始化书签数据
+            let url = this.$baseIP + "/sd_product/prod/bookmark/info/list";
+            axios.get(url).then((res) => {
+                if(res.status == 200 && res.data.state == 200){
+                    this.tablePage.allData = res.data.records;
+                    this.selectBookMarkData();
+                }
+            })      
+        },
+        selectBookMarkData(){ // 按搜索条件查询数据
+            this.tablePage.selectData = [];
+            let num = 0;
+            this.tablePage.allData.forEach(item=>{
+                // 判断是否符合查询条件
+                if(this.selectData.name != "" && item.name.indexOf(this.selectData.name) == -1){
+                    return
+                }
+                if(this.selectData.id != "" && item.id.indexOf(this.selectData.id) == -1){
+                    return
+                }
+                if(this.selectData.type != "" && item.type.indexOf(this.selectData.type) == -1){
+                    return
+                }
+                if(this.selectData.cteator != "" && item.cteator.indexOf(this.selectData.cteator) == -1){
+                    return
+                }
+                num ++;
+                item.num = num;
+                item.typeName = this.getBookMarkType(item.type);
+                this.tablePage.selectData.push(item);
+            })
+
+            this.tablePage.total = this.tablePage.selectData.length;
+            this.tablePage.currentPage = 1;
+            this.showPage(1);
+        },
+        showPage(page){ // 表格显示第n页
+            let start = (page-1) * this.tablePage.pageSize;
+            let end = page * this.tablePage.pageSize;
+            this.tablePage.showData = this.tablePage.selectData.slice(start, end);
+        },
+        handleOpen(key, keyPath) {
+            console.log(key, keyPath);
+        },
+        handleClose(key, keyPath) {
+            console.log(key, keyPath);
+        },
+        deleteRow(index) {
+            // 删除书签
+            console.log(index)
+        },
+        handleClick(tab, event) {
+            console.log(tab, event);
+        },
+        NewBookmarks() {
+            this.table = false;
+            this.xinzen = true;
+        },
+        returnBokmarks() {
+            this.xinzen = false;
+            this.table = true; 
+        },
+    },
+};
+</script>
+
+<style lang="less" scoped>
+.right {
+    width: calc(100% - 280px);
+    height: 100%;
+    float: left;
+    position: relative;
+    top: 0;
+    left: 282px;
+    .top {
+        height: 48px;
+        background-color: #ffffff;
+        .el-breadcrumb {
+            width: 240px;
+            height: 48px;
+            font-size: 16px;
+            letter-spacing: 0;
+            text-align: justify;
+            line-height: 48px;
+            font-weight: 400;
+            margin: 0 0 12px 16px;
+            /deep/.el-breadcrumb__inner {
+                color: #2d5a9d;
+            }
+            /deep/.el-breadcrumb__separator[class*="icon"] {
+                margin: 0 3px;
+                font-weight: 400;
+                color: #2d5a9d;
+            }
+        }
+    }
+    // 新增书签  标签页样式
+    /deep/.el-tabs__nav-scroll {
+        margin: 10px 0 0 24px;
+        .el-tabs__item {
+            width: 100px;
+            font-size: 16px;
+            color: #adb3bb;
+            text-align: center;
+            padding: 0;
+        }
+        .el-tabs__item.is-active {
+            color: #409eff;
+            font-weight: 600;
+        }
+    }
+    /deep/.el-tabs__header {
+        margin-bottom: 24px;
+    }
+    /deep/.el-tabs__nav-wrap::after {
+        left: 24px;
+    }
+    .el-tab-pane {
+        display: flex;
+        .shuju {
+            width: 960px;
+            height: 860px;
+            margin-left: 24px;
+            margin-right: 24px;
+            margin-bottom: 27px;
+            background-color: #f5f6f7;
+            overflow: auto;
+            p {
+                height: 24px;
+                font-size: 16px;
+                color: #3e87f4;
+                font-weight: 600;
+                margin-left: 20px;
+                margin-top: 24px;
+            }
+            /deep/.el-form-item--small .el-form-item__label {
+                font-size: 16px;
+                margin-left: 24px;
+                color: #333333;
+                text-align: right;
+            }
+            /deep/.el-input--small .el-input__inner {
+                height: 36px;
+                font-size: 16px;
+                padding-left: 10px;
+            }
+            /deep/.el-form-item--small .el-form-item__content {
+                display: flex;
+            }
+            .el-button {
+                width: 160px;
+                height: 36px;
+                background: #3e87f4;
+                border-radius: 4px;
+            }
+            .el-radio-group {
+                margin-top: 10px;
+                font-size: 16px;
+            }
+            .xuanze {
+                width: 48px;
+                height: 24px;
+                background-color: #ffffff00;
+                text-align: center;
+                border: none;
+                font-size: 16px;
+                color: #333333;
+                margin-right: 24px;
+            }
+            /deep/ .el-radio {
+                margin: 0 15px;
+                .el-radio__inner {
+                    width: 16px;
+                    height: 16px;
+                }
+                .el-radio__label,
+                .el-checkbox__label {
+                    font-size: 16px;
+                }
+            }
+
+            .quyu {
+                height: 72px;
+                border: 1px solid rgba(214, 217, 221, 1);
+                border-radius: 4px;
+                background-color: #ffffff;
+                margin-top: 8px;
+                .sanjiao {
+                    width: 0;
+                    height: 0;
+                    border-left: 4px solid transparent;
+                    border-right: 4px solid transparent;
+                    border-bottom: 4px solid #d6d9dd;
+                    position: relative;
+                    top: -4px;
+                    left: 106px;
+                }
+                /deep/.el-checkbox-group {
+                    .el-checkbox-button__inner {
+                        border: none;
+                        width: 48px;
+                        height: 24px;
+                        font-size: 16px;
+                        color: #333333;
+                        border: none;
+                        background-color: #ffffff;
+                        margin: 4px 27px 0 0;
+                    }
+                    .el-checkbox-button.is-checked .el-checkbox-button__inner {
+                        color: #2672fd;
+                        font-size: 16px;
+                        font-weight: 600;
+                        background: none;
+                        box-shadow: none;
+                    }
+                }
+            }
+            .table_type {
+                width: 912px;
+                height: 216px;
+                background: #ffffff;
+                border-radius: 4px;
+                margin-left: 24px;
+                .table_type_one {
+                    height: 216px;
+                    overflow-x: scroll;
+                }
+                /deep/ .el-radio--small.is-bordered {
+                    width: 320px;
+                    height: 200px;
+                    background: #d8dfe5;
+                    margin: 8px 0 8px 8px;
+                }
+            }
+        }
+        .yulan {
+            width: 608px;
+            height: 860px;
+            margin-right: 24px;
+            background: #ffffff;
+            border: 1px solid rgba(214, 217, 221, 1);
+            .yulan_top {
+                width: 560px;
+                height: 48px;
+                background: #ff8a47;
+                text-align: center;
+                line-height: 48px;
+                font-size: 16px;
+                color: #ffffff;
+                font-weight: 500;
+                margin: 24px 24px 16px 24px;
+            }
+            span {
+                font-size: 18px;
+                color: #ff8a47;
+                letter-spacing: 0;
+                font-weight: 600;
+                margin-left: 24px;
+            }
+            .yulan_one {
+                margin: 24px 24px 0 24px;
+                border-top: 1px #d6d9dd solid;
+                /deep/ .el-form-item--small .el-form-item__label {
+                    font-size: 16px;
+                }
+                .yulan_p {
+                    height: 24px;
+                    font-size: 16px;
+                    color: #3e87f4;
+                    font-weight: 600;
+                    margin-left: -7px;
+                    margin-top: 24px;
+                }
+                .yulan_content {
+                    width: 100%;
+                    height: 480px;
+                    .el-table {
+                        border: 1px solid rgba(198, 219, 244, 1);
+                    }
+                    /deep/th {
+                        font-size: 16px;
+                        color: #333333;
+                        font-weight: 400;
+                        text-align: center;
+                        background: #dcecff;
+                        border: 1px solid rgba(214, 217, 221, 1);
+                    }
+                }
+                .el-button {
+                    width: 160px;
+                    height: 36px;
+                    background: #3e87f4;
+                    border-radius: 4px;
+                    font-weight: 500;
+                }
+            }
+        }
+    }
+
+    .content {
+        height: 100%;
+        background-color: #ffffff;
+        border-bottom: 1px #d6d9dd solid;
+        margin-top: 16px;
+        .Template {
+            /deep/ .el-dialog {
+                width: 272px;
+                height: 416px;
+            }
+        }
+        /deep/ .el-dialog {
+            height: 320px;
+            .el-dialog__header {
+                background: #3e87f4;
+                height: 32px;
+                .el-dialog__title {
+                    font-size: 16px;
+                    color: #ffffff;
+                    position: absolute;
+                    top: 4px;
+                    left: 24px;
+                    font-weight: 500;
+                }
+                .el-dialog__headerbtn {
+                    top: 6px;
+                    right: 22px;
+                    font-size: 20px;
+                }
+            }
+            .el-dialog__footer {
+                padding: 0 24px;
+                .el-button--small {
+                    width: 120px;
+                    height: 32px;
+                }
+                .el-button--small {
+                    font-size: 14px;
+                }
+                .el-button + .el-button {
+                    margin-left: 32px;
+                    font-size: 16px;
+                }
+            }
+            .el-dialog__headerbtn .el-dialog__close {
+                color: #ffffff;
+            }
+        }
+        /deep/ .el-dialog__body {
+            width: 320px;
+            padding: 16px 18px 40px 18px;
+            .NewBookmarks {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-around;
+                /deep/ .el-checkbox-button__inner:hover {
+                    color: none;
+                }
+                .el-checkbox-group {
+                    width: 128px;
+                    height: 80px;
+                    .el-checkbox-button:last-child .el-checkbox-button__inner {
+                        width: 128px;
+                        height: 80px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: space-around;
+                        color: #adb3bb;
+                        font-size: 14px;
+                        font-weight: 600;
+                        border-radius: 4px;
+                    }
+                    .el-checkbox-button.is-checked .el-checkbox-button__inner {
+                        background-color: #f0f6ff;
+                        span {
+                            color: #3e87f4;
+                        }
+                    }
+                }
+            }
+        }
+
+        .content_top {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            border-bottom: 1px #d6d9dd solid;
+            span {
+                font-size: 16px;
+                color: #333333;
+                letter-spacing: 0;
+                text-align: justify;
+                font-weight: 400;
+            }
+            .el-button + .el-button {
+                margin-left: 0;
+                /deep/.el-icon-plus {
+                    width: 16px;
+                    height: 16px;
+                    font-size: 16px;
+                }
+            }
+            button {
+                width: 120px;
+                height: 36px;
+                /deep/span {
+                    width: 32px;
+                    height: 24px;
+                    font-size: 16px;
+                    color: #ffffff;
+                    letter-spacing: 0;
+                    text-align: justify;
+                    font-weight: 400;
+                }
+            }
+            .el-input--small {
+                width: 200px;
+                height: 36px;
+                font-size: 16px;
+                color: #adb3bb;
+                letter-spacing: 0;
+                text-align: justify;
+                line-height: 36px;
+                font-weight: 400;
+            }
+            /deep/.el-input .el-input__inner {
+                width: 200px;
+                height: 36px;
+                padding-left: 10px;
+                font-size: 16px;
+                line-height: 36px;
+            }
+        }
+        .table {
+            height: calc(100% - 100px);
+            margin: 16px 16px 0 16px;
+            /deep/th {
+                width: 100%;
+                height: 48px;
+                background: #e8eff8;
+                font-family: PingFangSC-Medium;
+                font-size: 16px;
+                color: #2d5a9d;
+                letter-spacing: 0;
+                font-weight: 600;
+            }
+            /deep/ tr {
+                height: 48px;
+                ont-family: PingFangSC-Regular;
+                font-size: 16px;
+                color: #333333;
+                letter-spacing: 0;
+                text-align: justify;
+                font-weight: 500;
+            }
+            .el-button--text {
+                width: 65px;
+                height: 24px;
+                font-size: 16px;
+                font-weight: 600;
+                color: #2d5a9d;
+            }
+            .el-button--text:hover {
+                color: #66b1ff;
+            }
+            .el-button + .el-button {
+                margin-left: 0;
+            }
+            .gun {
+                color: #d6d9dd;
+            }
+        }
+        .bottom {
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            /deep/.el-pagination {
+                font-family: PingFangSC-Semibold;
+                font-size: 14px;
+                color: #333333;
+                font-weight: 600;
+            }
+        }
+    }
+}
+</style>

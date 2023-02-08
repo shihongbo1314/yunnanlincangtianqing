@@ -1,0 +1,167 @@
+<template>
+    <div class="historyCompareMain">
+        <el-card class="box_card">
+            <div class="contentTop">
+                <div style="display:flex;align-items: center;">
+                    <label>时间选择 ：</label>
+                    <el-date-picker
+                        style="margin-right:20px;"
+                        v-model="value1"
+                        type="daterange"
+                        size="mini"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期"
+                    >
+                    </el-date-picker>
+                    <label>要素选择 ：</label>
+                    <el-select
+                        size="mini"
+                        style="margin-right:20px;"
+                        v-model="value"
+                        placeholder="请选择要素"
+                    >
+                        <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        >
+                        </el-option>
+                    </el-select>
+                </div>
+
+                <div style="margin-top:20px;display:flex;align-items: center;">
+                    <label>区域选择 ：</label>
+                    <el-select
+                        size="mini"
+                        style="margin-right:20px;"
+                        v-model="value"
+                        placeholder="请选择区域"
+                    >
+                        <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        >
+                        </el-option>
+                    </el-select>
+                    <label>站点选择 ：</label>
+                    <el-select
+                        size="mini"
+                        style="margin-right:20px;"
+                        v-model="value"
+                        placeholder="请选择站点"
+                    >
+                        <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        >
+                        </el-option>
+                    </el-select>
+                    <el-button
+                        type="primary"
+                        @click="getData"
+                        size="mini"
+                    >查询</el-button>
+                </div>
+
+                <el-divider></el-divider>
+            </div>
+            <div class="contentBotton">
+                <div class="header">
+                    网格实况和站点实况对比分析
+                </div>
+                <div class="footer">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
+        </el-card>
+    </div>
+</template>
+
+<script>
+import service from "@/api/request";
+import { DateGrid } from "@/utils";
+export default {
+    name: "HistoryCompare",
+    data() {
+        return {
+            value1: "",
+            options: [
+                {
+                    value: "选项1",
+                    label: "黄金糕",
+                },
+                {
+                    value: "选项2",
+                    label: "双皮奶",
+                },
+                {
+                    value: "选项3",
+                    label: "蚵仔煎",
+                },
+                {
+                    value: "选项4",
+                    label: "龙须面",
+                },
+                {
+                    value: "选项5",
+                    label: "北京烤鸭",
+                },
+            ],
+            value: "",
+        };
+    },
+    methods: {},
+};
+</script>
+
+<style lang="less" scoped>
+.historyCompareMain {
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+    & .box_card {
+        height: 100%;
+    }
+    ::v-deep.el-card__body{
+        height: 100%;
+    }
+    .contentTop {
+        margin-bottom: 20px;
+    }
+    .contentBotton {
+        height: calc(100% - 120px);
+        .header {
+            height: 45px;
+            line-height: 45px;
+            padding-left: 20px;
+            font-size: 18px;
+            background-color: #3e87f4;
+            color: #fff;
+        }
+        .footer{
+            height: calc(100% - 45px);
+            display: flex;
+            flex-wrap: wrap;
+            overflow-y: auto;
+            div{
+                height: 450px;
+                width: 25%;
+                border: 1px solid #CCC;
+            }
+        }
+    }
+}
+</style>

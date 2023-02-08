@@ -1,0 +1,78 @@
+<template>
+  <div class="addrList">
+      <ul>
+          <li v-for="(item,index) in addrList" :key="item.code" :class="item.code==code?'active':''" @click="handleChange(index)">
+              <span>{{item.name}}</span>
+          </li>
+      </ul>
+  </div>
+</template>
+
+<script>
+import cityFullJSON from "../../assets/map/530900_full.json";
+export default {
+    props:["map"],
+    data(){
+        return{
+            code: 530900,
+            addrList: []
+        }
+    },
+    created(){
+        this.addrList.push({name: '临沧市', code: 530900, bound:[[ 25.03284, 100.546904], [23.073182, 98.668863]]})
+        cityFullJSON.features.forEach(item=>{
+            let obj = {}
+            let {properties:proper} = item       
+            if(proper.name.includes("自治")){
+                obj.name = proper.name.substring(0,2)+"县"
+            }else{
+                obj.name = proper.name
+            } 
+            obj.code = proper.adcode
+            let layer = L.geoJSON(item.geometry)
+            obj.bound = layer.getBounds()
+            this.addrList.push(obj)
+        })
+    },
+    methods:{
+        handleChange(index){
+            this.code = this.addrList[index].code
+            this.map.fitBounds(this.addrList[index].bound) // 将范围移动到区县
+        }
+    }
+}
+</script>
+
+<style scoped>
+.addrList ul{
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+}
+.addrList ul:after{
+    content: "";
+    display: block;
+    clear: both;
+}
+.addrList ul>li{
+    float: left;
+    width: calc(100% / 3);
+    padding: 5px 0;
+    text-align: center;
+}
+.addrList ul>li>span{
+    display: inline-block;
+    width: 100px;
+    padding: 5px 0;
+    border: 1px solid #DCDFE6;
+    text-align: center;
+    color: #606266;
+    cursor: pointer;
+    border-radius: 3px;
+}
+.addrList ul>li.active>span{
+    background: #3e87f4;
+    color: #fff;
+    border-color: #3e87f4;
+}
+</style>

@@ -1,0 +1,158 @@
+<template>
+  <div class="content">
+    <el-card class="box_card">
+      <div class="header">
+        <el-row>
+          <el-col :span="12">
+            <el-upload
+              action="/"
+              accept=".txt"
+              :show-file-list="false"
+              :before-upload="beforeUpload"
+              :file-list="fileList"
+            >
+              <el-button type="primary" size="medium">上传TXT文件</el-button>
+            </el-upload>
+          </el-col>
+          <el-col :span="12" style="text-align: right">
+            <el-button type="warning" size="medium" @click="downloadTxt"
+              >下载</el-button
+            >
+            <el-button type="success" size="medium" @click="save"
+              >保存</el-button
+            >
+          </el-col>
+        </el-row>
+      </div>
+      <el-input
+        class="textareaClass"
+        type="textarea"
+        v-model="value"
+        :autosize="{ minRows: 20 }"
+        placeholder="请输入内容"
+      ></el-input>
+    </el-card>
+  </div>
+</template>
+<script>
+import { hebdomadEditor, saveEditor, uploadingTxt } from "@/api/make.js";
+import { saveAs } from "file-saver";
+import { txtFileSetting } from "../../minx";
+export default {
+  name: "TxtEditor",
+  props: {
+    name: {
+      type: String,
+      default: "下载",
+    },
+  },
+  data() {
+    return {
+      value: "",
+      fileList: [],
+      textData: [],
+      nullId: "",
+    };
+  },
+  mixins: [txtFileSetting],
+  mounted() {
+    let roleId = JSON.parse(localStorage.getItem("lcqxfzjz")).roleInfo.id;
+    hebdomadEditor({
+      type: "gaojian",
+      roleId: roleId,
+    }).then((res) => {
+      if (res.data.state == 200) {
+        for (let i = 0; i < res.data.records.length; i++) {
+          if (res.data.records[i].type == "gaojian") {
+            this.nullId = res.data.records[i].id;
+            this.value = res.data.records[i].content;
+            this.textData = res.data.records;
+          }
+        }
+      }
+      if (res.data.recoreds == null) {
+        this.getTxtFile();
+      }
+    });
+  },
+  methods: {
+    getTxtFile() {
+      let roleId = JSON.parse(localStorage.getItem("lcqxfzjz")).roleInfo.id;
+      if (roleId != 1 && this.value == "") {
+        //获取编辑文本
+        hebdomadEditor({
+          type: "gaojian",
+          roleId: 1,
+        }).then((res) => {
+          if (res.data.state == 200) {
+            for (let i = 0; i < res.data.records.length; i++) {
+              if (res.data.records[i].type == "gaojian") {
+                this.nullId = res.data.records[i].id;
+                this.value = res.data.records[i].content;
+                this.textData = res.data.records;
+              }
+            }
+          }
+        });
+      }
+    },
+    save() {
+      let roleId = JSON.parse(localStorage.getItem("lcqxfzjz")).roleInfo.id;
+      let title = "实况通报";
+      //保存
+      if (!this.value) {
+        this.$message.error("内容不能为空");
+        return;
+      }
+      if (roleId == 1 && this.textData == null) {
+        this.nullId = "";
+      } else if (roleId == 1 && this.textData != "") {
+        this.nullId = this.textData[0].id;
+      }
+      if (roleId != 1 && this.textData != "") {
+        this.nullId = this.textData[0].id;
+      } else if (roleId != 1 && this.textData == "") {
+        this.nullId = "";
+      }
+      saveEditor({
+        id: this.nullId,
+        type: "gaojian",
+        content: this.value,
+        title: title,
+        roleId: roleId,
+      }).then((res) => {
+        if (res.data.state == 200) {
+          this.$message.success("保存成功");
+        }
+        this.getTxtFile();
+      });
+    },
+    downloadTxt() {
+      //下载txt文件
+      let str = this.value;
+      let strData = new Blob([str], { type: "text/plain;charset=utf-8" });
+      saveAs(strData, `${this.name}.txt`);
+    },
+  },
+};
+</script>
+
+<style lang="less" scoped>
+.content {
+  height: 100%;
+  font-size: 14px;
+  padding: 16px;
+  & .box_card {
+    height: 100%;
+  }
+  .header {
+    padding-bottom: 20px;
+  }
+  .textareaClass {
+    /deep/ textarea {
+      resize: none;
+      font-size: 18px;
+    }
+  }
+}
+</style>

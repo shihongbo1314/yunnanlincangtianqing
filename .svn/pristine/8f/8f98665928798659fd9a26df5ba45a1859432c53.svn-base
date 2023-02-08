@@ -1,0 +1,283 @@
+<template>
+  <div class="content">
+    <div class="content_left">
+      <el-card class="box_card">
+        <ul>
+          <li v-for="item in division" :key="item.id">
+            <el-button
+              :type="selectCode == item.id ? 'primary' : ''"
+              class="cBtn"
+              round
+              size="medium"
+              @click="countyChange(item.id)"
+              >{{ item.name }}</el-button
+            >
+            <!-- <span :class="{ no: !item.finish, yes: item.finish }">{{
+              item.finish ? "已完成" : "未制作"
+            }}</span> -->
+          </li>
+        </ul>
+      </el-card>
+    </div>
+    <div class="content_right">
+      <el-card class="box_card">
+        <div class="header">
+          <el-row>
+            <el-col :span="12">
+              <el-upload
+                action="/"
+                accept=".txt"
+                :show-file-list="false"
+                :before-upload="beforeUpload"
+                :file-list="fileList"
+              >
+                <el-button type="primary" size="medium">上传TXT文件</el-button>
+              </el-upload>
+            </el-col>
+            <el-col :span="12" style="text-align: right">
+              <el-button type="warning" size="medium" @click="downloadTxt"
+                >下载</el-button
+              >
+              <el-button type="success" size="medium" @click="save"
+                >保存</el-button
+              >
+            </el-col>
+          </el-row>
+        </div>
+        <el-input
+          class="textareaClass"
+          type="textarea"
+          v-model="value"
+          :autosize="{ minRows: 20 }"
+          placeholder="请输入内容"
+        ></el-input>
+      </el-card>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getQuhua, getLinCangCity, editLinCangCity } from "@/api/make.js";
+import { saveAs } from "file-saver";
+import { mapState } from "vuex";
+import { random } from "../../utils";
+import { txtFileSetting } from "../../minx";
+export default {
+  name: "Forecast24County",
+  data() {
+    return {
+      value: "",
+      selectCode: 2,
+      //   countyList: [
+      //     { code: 530902, name: "临翔区", finish: false },
+      //     { code: 530921, name: "凤庆县", finish: false },
+      //     { code: 530922, name: "云县", finish: false },
+      //     { code: 530923, name: "永德县", finish: false },
+      //     { code: 530924, name: "镇康县", finish: false },
+      //     { code: 530925, name: "双江县", finish: false },
+      //     { code: 530926, name: "耿马县", finish: false },
+      //     { code: 530927, name: "沧源县", finish: false },
+      //   ],
+      fileList: [],
+      division: [],
+      linCangData: [],
+      nullId:null,
+    };
+  },
+  mixins: [txtFileSetting],
+  computed: {
+    ...mapState(["regionList", "weatherPheList"]),
+  },
+  mounted() {
+    this.getDivision();
+    this.getGridData();
+  },
+  methods: {
+    //获取区划数据
+    getDivision() {
+      getQuhua({}).then((res) => {
+        if (res.data.state == 200) {
+          // 循环res.data.records中parentId为1的数据存到this.division中
+          res.data.records.forEach((item) => {
+            if (item.parentId == 1) {
+              this.division.push(item);
+            }
+          });
+        }
+      });
+    },
+    countyChange(code) {
+      //切换县区
+      this.selectCode = code;
+      this.getGridData();
+    },
+    getGridData() {
+      let roleId = JSON.parse(localStorage.getItem("lcqxfzjz")).roleInfo.id;
+      let regionId = JSON.parse(localStorage.getItem("lcqxfzjz")).userRegion.id;
+      
+      getLinCangCity({
+        regionId: this.selectCode,
+        makeRegion: regionId,
+      }).then((res) => {
+        this.value = "";
+        if (res.data.state == 200) {
+          this.linCangData = res.data.records;
+          this.value =
+            this.linCangData.timeContent + "：" + this.linCangData.content;
+            
+        }
+      });
+      //获取各乡镇的网格预报数据
+      //   this.regionList.forEach((item) => {
+      //     if (this.selectCode == item.id) {
+      //       item.children.forEach((child) => {
+      //         if (nameMax) {
+      //           if (child.length > nameMax) {
+      //             nameMax = child.length;
+      //           }
+      //         } else {
+      //           nameMax = child.length;
+      //         }
+
+      //         let temMin = random(10, 15);
+      //         let temMax = random(16, 30);
+      //         let pheIndex = random(0, this.weatherPheList.length - 1);
+      //         let pheName = this.weatherPheList[pheIndex]["name"];
+      //         let obj = {
+      //           name: child,
+      //           phe: pheName,
+      //           tem: `${temMin}-${temMax}℃`,
+      //         };
+      //         if (preMax) {
+      //           if (pheName.length > preMax) {
+      //             preMax = pheName.length;
+      //           }
+      //         } else {
+      //           preMax = pheName.length;
+      //         }
+      //         countyArr.push(obj);
+      //       });
+      //     }
+      //   });
+      //   countyArr.forEach((county) => {
+      //     let str = `${county.name}，`;
+      //     let nameLength = nameMax - county.name.length;
+      //     for (let i = 0; i < nameLength; i++) {
+      //       str += "  ";
+      //     }
+      //     str += `${county.phe}，`;
+
+      //     let pheLength = preMax - county.phe.length;
+      //     for (let i = 0; i < pheLength; i++) {
+      //       str += "  ";
+      //     }
+
+      //     str += `${county.tem}；`;
+      //     valueArr.push(str);
+      //   });
+    },
+    save() {
+      let roleId = JSON.parse(localStorage.getItem("lcqxfzjz")).roleInfo.id;
+      let regionId = JSON.parse(localStorage.getItem("lcqxfzjz")).userRegion.id;
+      //获取当前时间yyyy-mm-dd
+      let date = new Date();
+      let year = date.getFullYear();
+      let month = date.getMonth() + 1;
+      let day = date.getDate();
+      let time = `${year}年${month}月${day}日`;
+      let timeTitle = "预计" + time + "天气";
+      //保存
+      if (!this.value) {
+        this.$message.error("内容不能为空");
+        return;
+      }
+      if (roleId == 4 && this.linCangData == null  ) {
+        
+      }
+      editLinCangCity({
+        id: this.nullId,
+        regionId: this.selectCode,
+        makeRegion: regionId,
+        content: this.value,
+        timeContent: timeTitle,
+        time: time,
+      }).then((res) => {
+        if (res.data.state == 200) {
+          this.$message.success("保存成功");
+        }
+      });
+      // this.countyList.forEach((item) => {
+      //   if (this.selectCode == item.code) {
+      //     item.finish = true;
+      //   }
+      // });
+      this.getGridData();
+    },
+    downloadTxt() {
+      //下载txt文件
+      let txtName = this.linCangData.userRegion.name;
+      //   this.countyList.forEach((item) => {
+      //     if (this.selectCode == item.code) {
+      //       txtName = item.name;
+      //     }
+      //   });
+      let str = this.value;
+      let strData = new Blob([str], { type: "text/plain;charset=utf-8" });
+      saveAs(strData, `未来24小时${txtName}乡镇预报.txt`);
+    },
+  },
+};
+</script>
+
+<style lang="less" scoped>
+.content {
+  height: 100%;
+  display: flex;
+  padding: 16px;
+  font-size: 14px;
+  & .box_card {
+    height: 100%;
+  }
+  .content_left {
+    width: 300px;
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      li {
+        margin-bottom: 20px;
+        .cBtn {
+          width: 100%;
+          font-size: 16px;
+        }
+        position: relative;
+        span {
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+        span.no {
+          color: rgb(255, 72, 72);
+        }
+        span.yes {
+          color: rgb(44, 202, 123);
+        }
+      }
+    }
+  }
+  .content_right {
+    flex: 1;
+    padding-left: 16px;
+    .header {
+      padding-bottom: 20px;
+    }
+    .textareaClass {
+      /deep/ textarea {
+        resize: none;
+        font-size: 18px;
+      }
+    }
+  }
+}
+</style>

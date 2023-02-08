@@ -1,0 +1,89 @@
+import request from './request'
+/* 右侧菜单数据 */
+export function getDataByParam(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getDataByParam',
+        method: 'post',
+        params
+    })
+}
+/* 站点出图 */
+export function getImageByParam(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getImageByParam',
+        method: 'post',
+        params
+    })
+}
+/* 获得实况阈值 */
+export function getthreshold(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/threshold/list',
+        method: 'post',
+        params
+    })
+}
+/* 修改实况阈值 */
+export function updateThreshold(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/threshold/update',
+        method: 'post',
+        params
+    })
+}
+/* 获得预警信号 */
+export function getWarning(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getWarning',
+        method: 'post',
+        params
+    })
+}
+/* 获得预报数据要素 */
+export function gridElement(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/gridElement/list',
+        method: 'post',
+        params
+    })
+}
+/* 获得最新预报格点预报时间 */
+export function getMaxTime(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/yb/getMaxTime',
+        method: 'post',
+        params
+    })
+}
+/* 获得格点图片数据 */
+export function getGdimg(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/yb/list',
+        method: 'post',
+        params
+    })
+}
+/* 获得格点实况最新数据时间 */
+export function getMaxTimeSK(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/sk/getMaxTime',
+        method: 'post',
+        params
+    })
+}
+/* 获得格点实况图片信息 */
+export function getImgListSK(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/sk/list',
+        method: 'post',
+        params
+    })
+}
+/* 获得全部作业点 */
+export function getOperationInfo(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/operationInfo/list',
+        method: 'post',
+        params
+    })
+}

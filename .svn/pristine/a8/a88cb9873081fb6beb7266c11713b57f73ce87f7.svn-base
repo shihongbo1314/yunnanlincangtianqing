@@ -1,0 +1,15 @@
+// vue.config.js配置修改之后，需要重新启动项目，配置才会生效
+module.exports = {
+    lintOnSave: false,// 关闭语法检查
+    publicPath: "./", // 可以设置成相对路径，这样所有的资源都会被链接为相对路径，打出来的包可以被部署在任意路径
+    devServer: {
+        proxy: {
+          '/api': {
+            target: 'https://serv.91weather.com',
+            ws: true,
+            changeOrigin: true,
+            pathRewrite:{'^/api':''}
+          },
+        }
+    }
+};

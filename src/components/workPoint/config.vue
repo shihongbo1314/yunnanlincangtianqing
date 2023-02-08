@@ -1,0 +1,287 @@
+<template>
+    <div class="workPointMain">
+        <el-card class="box_card">
+            <div class="header">
+                <el-row>
+                    <el-col :span="12">  
+                        名称：<el-input v-model="groupName" style="display:inline-block;width: 200px;margin-right: 10px" placeholder="请输入名称"></el-input>                         
+                        <el-button type="primary" size="medium" @click="getData()">查询</el-button>
+                        <el-button type="success" size="medium" @click="handleAdd">添加</el-button>
+                    </el-col>
+                    <!-- <el-col :span="12" style="text-align:right">
+                        <el-button size="medium">导入</el-button>
+                        <el-button size="medium">导出</el-button>
+                    </el-col> -->
+                </el-row>  
+            </div>
+            <el-table
+                :data="tableData"
+                stripe
+                border
+                style="width: 100%"
+                class="commonTable">
+                <el-table-column label="序号" align="center" width="70">
+                    <template slot-scope="scope"><span>{{scope.$index+(currentPage - 1) * pageSize + 1}} </span></template>
+                </el-table-column>
+                <el-table-column
+                prop="name"
+                label="名称">
+                </el-table-column>
+                <el-table-column
+                prop="sid"
+                label="临近站">
+                    <template slot-scope="scope">{{`${scope.row.sid} ${getStationName(scope.row.sid)}`}}</template>
+                </el-table-column>
+                <el-table-column
+                prop="lon"
+                label="经度">
+                </el-table-column>
+                <el-table-column
+                prop="lat"
+                label="纬度">
+                </el-table-column>
+                <el-table-column label="操作" width="150">
+                    <template slot-scope="scope">
+                        <el-button
+                        size="mini"
+                        type="text"
+                        icon="el-icon-edit"
+                        class="warning"
+                        @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+                        <el-button
+                        size="mini"
+                        type="text"
+                        icon="el-icon-delete"
+                        class="red"
+                        @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-pagination
+                style="margin-top: 20px;text-align:right"
+                @size-change="getData"
+                @current-change="getData"
+                :current-page="currentPage"
+                :page-sizes="[10, 20, 30, 40]"
+                :page-size="pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+            </el-pagination>
+
+            <!-- 添加/修改对话框 -->
+            <el-dialog
+                :title="dialogStatus"
+                :visible.sync="dialogVisible"
+                width="30%">
+                <el-form ref="form" :rules="rules" :model="form" label-width="110px">
+                    <el-form-item label="名称" prop="name">
+                        <el-input v-model="form.name" placeholder="请输入姓名"></el-input>
+                    </el-form-item>
+                    <el-form-item label="经度" prop="lon">
+                        <el-input type="number" v-model="form.lon" placeholder="请输入经度"></el-input>
+                    </el-form-item>
+                    <el-form-item label="纬度" prop="lat">
+                        <el-input type="number" v-model="form.lat" placeholder="请输入纬度"></el-input>
+                    </el-form-item>
+                    <el-form-item label="临近点" prop="sid">
+                        <el-select v-model="form.sid" style="width:100%" filterable placeholder="请选择临近点" multiple>
+                            <el-option
+                                v-for="item in allStation"
+                                :key="item.id"
+                                :label="`${item.site} ${item.siteName}`"
+                                :value="item.site">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-form>
+                <span slot="footer" class="dialog-footer">
+                    <el-button @click="dialogVisible = false">取 消</el-button>
+                    <el-button type="primary" @click="handleFun">确 定</el-button>
+                </span>
+            </el-dialog>
+        </el-card>
+    </div>
+</template>
+
+<script>
+import request from '@/api/request'
+export default {
+    name: "PropleGroup",
+    data(){
+        return{
+            name:"",
+            currentPage: 1,
+            pageSize: 10,
+            total : 0,
+            tableData:[],
+            dialogStatus: "添加",
+            dialogVisible: false,
+            form: {
+                name: "",
+                lon: "",
+                lat: "",
+                id : null,
+                other: null,
+                sid : null,
+            },
+            rules: {
+                name: [
+                    { required: true, message: '请输入姓名', trigger: 'blur' }
+                ],
+                lon: [
+                    {required: true,  message: '请输入经度', trigger: 'blur' }
+                ],
+                lat: [
+                    {required: true,  message: '请输入纬度', trigger: 'blur' }
+                ],
+                sid: [
+                    {required: true,  message: '请选择临近站点', trigger: 'blur' }
+                ]
+            },
+            groupData : {},
+            groupName:"",
+            allStation : [],
+        }
+    },
+    computed:{
+        total(){
+            return this.tableData.length
+        }
+    },
+    mounted(){
+        this.$bus.$on('setGroupData',this.setGroupData)
+        this.$bus.$on('deleteTableData',this.deleteTableData)
+    },
+    created(){
+        this.getData();
+        this.getAllStation();
+    },
+    methods: {
+        getAllStation(){
+            request.post('station/list').then((res) => {
+                if (res.data.state == 200) {
+                    this.allStation = res.data.records;
+                }
+            });
+        },
+        getStationName(site){
+            for (let i = 0; i < this.allStation.length; i++) {
+                const element = this.allStation[i];
+                if(element.site == site){
+                    return element.siteName;
+                }
+            }
+            return '';
+        },
+      getData(page){//查询数据
+        console.log(page)
+        if(page == null){
+            page=1;
+        }
+        this.currentPage = page;
+        this.tableData = []
+        request.post('operationInfo/page', {
+            name : this.groupName,
+            size:this.pageSize,
+            current:this.currentPage
+        }).then((res) => {
+            if (res.data.state == 200) {
+                this.tableData = res.data.records;
+                this.total = res.data.total;
+            }
+        });
+      },
+      setGroupData(data){//群组数据
+        this.groupData = data
+        this.getData()
+      },
+    deleteTableData(name){//删除群组时将群组的数据也一起删除
+        this.allData.forEach((item,index)=>{
+            if(item.group.includes(name)){
+                this.allData.splice(index, 1)
+            }
+        })
+        this.groupName = ""
+        this.getData()
+    },
+    updateState(row){
+        this.form = JSON.parse(JSON.stringify(row));
+        this.dialogStatus = "修改"
+        this.handleFun();
+    },
+    handleFun(){
+        let params = this.form;
+        if(this.dialogStatus == "添加"){
+            delete params.id;
+        }
+
+        request.post('operationInfo/saveOrUpdate', params).then((res) => {
+            if (res.data.state == 200) {
+                this.$message.success(this.dialogStatus + "成功")
+                this.dialogVisible = false;
+                this.getData(this.currentPage)
+            }else{
+                this.$message.error(this.dialogStatus + "失败")
+            }
+        });
+    },
+    handleAdd(){
+        if(this.groupData==""){
+            this.$message.error("请在左侧群组中选中要添加人员的群组")
+            return
+        }
+        this.form = {
+            name: "",
+            lon: "",
+            lat: "",
+            id : null,
+            other: null,
+            sid : null,
+        },
+        this.dialogVisible = true
+    },
+    handleEdit(_, row){//修改
+        this.form = JSON.parse(JSON.stringify(row));
+        this.dialogStatus = "修改"
+        this.dialogVisible = true
+    },
+    handleDelete(index, rows){//删除
+        this.$confirm(`确定要删除吗？`, '提示', {
+            type: 'warning'
+        }).then(() => {
+            request.post('operationInfo/remove', {id:rows.id}).then((res) => {
+                if (res.data.state == 200) {
+                    this.$message.success("删除成功")
+                    this.dialogVisible = false;
+                    this.getData()
+                }else{
+                    this.$message.error("删除失败")
+                }
+            });
+        })   
+      }
+    },
+}
+</script>
+
+<style lang="less" scoped>
+.workPointMain{
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+    .box_card{
+        height: 100%;
+        font-size: 14px;
+        .header{
+            padding-bottom: 20px;
+        }
+        .red {
+            color: #F56C6C;
+        }
+        .warning{
+            color: #E6A23C;
+        }
+    }
+}
+
+</style>

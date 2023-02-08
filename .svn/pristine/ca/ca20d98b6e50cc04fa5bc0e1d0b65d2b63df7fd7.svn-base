@@ -1,0 +1,124 @@
+<template>
+    <div class="historyCompareMain">
+        <el-card class="box_card">
+            <div class="contentTop">
+                开始时间
+                <el-date-picker
+                    v-model="startTime"
+                    style="margin-left: 10px"
+                    type="date"
+                    size="large"
+                    :picker-options="pickerOptions"
+                    placeholder="开始时间"
+                    >
+                </el-date-picker>
+                结束时间
+                <el-date-picker
+                    style="margin-right: 20px"
+                    v-model="endTime"
+                    type="date"
+                    size="large"
+                    :picker-options="pickerOptions"
+                    placeholder="结束时间"
+                >
+                </el-date-picker>
+                <el-button type="primary" @click="getData" size="medium">查询</el-button>
+                <el-divider></el-divider>
+                <el-row>
+                    <el-col :span="12">
+                        <el-button type="primary" plain size="medium">柱状图</el-button>
+                        <el-button type="primary" plain size="medium">折线图</el-button>
+                    </el-col>
+                    <el-col :span="12"></el-col>
+                </el-row>
+            </div>
+            <div class="contentBottom">
+                <el-table
+                    :data="tableData"
+                    stripe
+                    border
+                    style="width: 100%"
+                    class="commonTable"
+                    >
+                    <el-table-column prop="sid" label="站点编号" align="center">
+                    </el-table-column>
+                    <el-table-column prop="sidName" label="站点名称" align="center">
+                    </el-table-column>
+                    <el-table-column
+                        prop="temAvg"
+                        sortable
+                        label="平均温度(℃)"
+                        align="center"
+                    >
+                    </el-table-column>
+                    <el-table-column
+                        prop="temAvgYear"
+                        sortable
+                        label="30年平均温度(℃)"
+                        align="center"
+                    >
+                    </el-table-column>
+                    <el-table-column
+                        prop="temdiffer"
+                        sortable
+                        label="距平值"
+                        align="center"
+                    >
+                    </el-table-column>
+                    <el-table-column
+                        prop="RainMaxTime"
+                        label="最大降水出现时间"
+                        align="center"
+                    >
+                    </el-table-column>
+                </el-table>
+            </div>
+        </el-card>
+    </div>
+</template>
+
+<script>
+import service from "@/api/request"
+import {DateGrid} from "@/utils"
+export default {
+    name: "HistoryCompare",
+    data(){
+        return{
+            startTime: "",
+            endTime: "",
+            tableData: [],
+            pickerOptions: {
+                disabledDate(time) {
+                    return time.getTime() > Date.now() - 8.64e6; //只能选择今天及今天之前的日期
+                },
+            },
+        }
+    },
+    methods:{
+        getData(){
+            service.post("/temavg?rangeTime",{
+                startTime: DateGrid(this.startTime,"yyyyMMdd"),
+                endTime: DateGrid(this.endTime,"yyyyMMdd")
+            }).then((res) => {
+                if(res.data.s==1){
+                    this.tableData = res.data.d  
+                }                        
+            })
+        }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.historyCompareMain{
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+    & .box_card {
+       height: 100%;
+    }
+    .contentTop{
+        margin-bottom: 20px;
+    }
+}
+</style>

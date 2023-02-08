@@ -1,0 +1,164 @@
+<template>
+    <div class="main">
+        <el-card class="box_card">
+            <div class="top">
+                <el-row>
+                    <el-col :span="20">
+                    数据时间 <el-date-picker
+                        v-model="dateRange"
+                        type="daterange"
+                        size="large"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期">
+                        </el-date-picker>
+                        <el-button class="btn" type="primary" size="medium">查询</el-button>
+                    </el-col>
+                    <el-col :span="4" style="text-align:right">
+                        <el-button class="btn" type="success" size="medium">下载</el-button>
+                    </el-col>
+                </el-row>           
+            </div>
+            <div class="bottom">
+                <el-table
+                    :data="tableData"
+                    stripe
+                    border
+                    :header-cell-style="{fontSize: '14px'}"
+                    :cell-style="{fontSize: '14px'}"
+                    style="width: 100%">
+                    <el-table-column
+                    prop="sid"
+                    label="站点编号"
+                    align="center">
+                    </el-table-column>
+                    <el-table-column
+                    prop="sName"
+                    label="站点名称"
+                    align="center">
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain1"
+                    sortable
+                    align="center">
+                        <template slot="header">
+                            <div>小雨</div>
+                            <div>次数/概率</div>
+                        </template>
+                        <template slot-scope="scope">
+                            {{scope.row.rain1}} / {{probabilityCalculation(scope.row,'rain1')}}%
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain2"
+                    sortable
+                    align="center">
+                        <template slot="header">
+                            <div>中雨</div>
+                            <div>次数/概率</div>
+                        </template>
+                        <template slot-scope="scope">
+                            {{scope.row.rain2}} / {{probabilityCalculation(scope.row,'rain2')}}%
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain3"
+                    sortable
+                    align="center">
+                        <template slot="header">
+                            <div>大雨</div>
+                            <div>次数/概率</div>
+                        </template>
+                        <template slot-scope="scope">
+                            {{scope.row.rain3}} / {{probabilityCalculation(scope.row,'rain3')}}%
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain4"
+                    sortable
+                    align="center">
+                        <template slot="header">
+                            <div>暴雨</div>
+                            <div>次数/概率</div>
+                        </template>
+                        <template slot-scope="scope">
+                            {{scope.row.rain4}} / {{probabilityCalculation(scope.row,'rain4')}}%
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain5"
+                    sortable
+                    align="center">
+                        <template slot="header">
+                            <div>大暴雨</div>
+                            <div>次数/概率</div>
+                        </template>
+                        <template slot-scope="scope">
+                            {{scope.row.rain5}} / {{probabilityCalculation(scope.row,'rain5')}}%
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain6"
+                    sortable
+                    align="center">
+                        <template slot="header">
+                            <div>特大暴雨</div>
+                            <div>次数/概率</div>
+                        </template>
+                        <template slot-scope="scope">
+                            {{scope.row.rain6}} / {{probabilityCalculation(scope.row,'rain6')}}%
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+        </el-card>
+    </div>
+</template>
+
+<script>
+export default {
+    data(){
+        return{
+            dateRange: [],
+            tableData: [
+                {sid: 56839, sName: "镇康", rain1: 1024, rain2: 845, rain3: 754,rain4: 594,rain5: 354,rain6: 54},
+                {sid: 56846, sName: "凤庆", rain1: 924, rain2: 845, rain3: 794,rain4: 554,rain5: 254,rain6: 74},
+                {sid: 56849, sName: "永德", rain1: 1124, rain2: 875, rain3: 734,rain4: 574,rain5: 354,rain6: 54},
+                {sid: 56854, sName: "云县", rain1: 1234, rain2: 645, rain3: 554,rain4: 554,rain5: 154,rain6: 84},
+                {sid: 56844, sName: "沧源", rain1: 1704, rain2: 837, rain3: 754,rain4: 574,rain5: 354,rain6: 54},
+                {sid: 56846, sName: "耿马", rain1: 2014, rain2: 945, rain3: 434,rain4: 354,rain5: 254,rain6: 34},
+                {sid: 56850, sName: "双江", rain1: 1224, rain2: 445, rain3: 759,rain4: 552,rain5: 354,rain6: 54},
+                {sid: 56851, sName: "临沧", rain1: 1456, rain2: 745, rain3: 454,rain4: 354,rain5: 344,rain6: 94}
+            ],            
+        }        
+    },
+    created(){
+        let startDate = new Date(new Date().getTime()-1000*60*60*24*10)
+        let endDate = new Date()
+        this.dateRange=[startDate,endDate]
+    },
+    methods:{
+        probabilityCalculation(row,param){
+            let all = row.rain1+row.rain2+row.rain3+row.rain4+row.rain5+row.rain6
+            return (row[param]/all*100).toFixed(1)
+        }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.main{
+    font-size: 14px;
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+    & .box_card{
+        height: 100%;
+    }
+    .top{
+        padding-bottom: 20px;
+        .btn{
+            margin-left: 10px;
+        }
+    }
+}
+</style>

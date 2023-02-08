@@ -1,0 +1,655 @@
+<template>
+  <div class="content">
+    <div class="content_left">
+      <el-card class="box_card">
+        <div class="top">
+          <el-row>
+            <el-col :span="20">
+              数据时间
+              <el-date-picker
+                v-model="dateRange"
+                type="monthrange"
+                value-format="yyyyMMddHHmmss"
+                start-placeholder="开始月份"
+                end-placeholder="结束月份"
+                :picker-options="pickerOptions"
+              >
+              </el-date-picker>
+              &nbsp;&nbsp; 气象站
+              <el-select
+                v-model="value"
+                placeholder="请选择"
+                filterable
+                style="width: 150px"
+              >
+                <el-option
+                  v-for="item in options"
+                  :key="item.value"
+                  :label="item.label + ' (' + item.value + ')'"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+              <el-button
+                class="btn"
+                type="primary"
+                size="medium"
+                @click="getData()"
+                >查询</el-button
+              >
+            </el-col>
+            <el-col :span="4" style="text-align: right">
+              <el-button @click="importClick()" size="medium">导出</el-button>
+            </el-col>
+          </el-row>
+        </div>
+        <el-table
+          :data="nullArr"
+          v-loading="loading"
+          id="daochu"
+          stripe
+          border
+          :header-cell-style="{ fontSize: '14px' }"
+          :cell-style="{ fontSize: '14px' }"
+          style="width: 100%"
+        >
+          <el-table-column prop="sid" label="风向方位" align="center">
+          </el-table-column>
+          <el-table-column prop="fengxiang" label="总计次数" align="center">
+          </el-table-column>
+          <el-table-column prop="max" label="最大风速" align="center">
+          </el-table-column>
+          <el-table-column prop="avg" label="平均风速" align="center">
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </div>
+    <div class="content_right">
+      <el-card class="box_card">
+        <!-- <div class="downloadBtn"><el-button size="medium" type="warning" @click="handleDownImage">下载</el-button></div> -->
+        <div class="downloadImg">
+          <div
+            id="echartsDiv"
+            :style="{ width: '700px', height: '750px' }"
+          ></div>
+        </div>
+      </el-card>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+import XlSX from "xlsx";
+import FileSaver from "file-saver";
+import windSpeedData from "../assets/api/windSpeed.json";
+export default {
+  data() {
+    return {
+      dateRange: ["20210831000000", "20220831010000"],
+      options: [
+        {
+          value: "56839",
+          label: "镇康",
+        },
+        {
+          value: "56846",
+          label: "凤庆",
+        },
+        {
+          value: "56849",
+          label: "永德",
+        },
+        {
+          value: "56854",
+          label: "云县",
+        },
+        {
+          value: "56944",
+          label: "沧源",
+        },
+        {
+          value: "56946",
+          label: "耿马",
+        },
+        {
+          value: "56950",
+          label: "双江",
+        },
+        {
+          value: "56951",
+          label: "临沧",
+        },
+      ],
+      value: "56946",
+      tableData: [
+        {
+          sid: "N",
+        },
+        {
+          sid: "NNE",
+        },
+        {
+          sid: "NE",
+        },
+        {
+          sid: "ENE",
+        },
+        {
+          sid: "E",
+        },
+        {
+          sid: "ESE",
+        },
+        {
+          sid: "SE",
+        },
+        {
+          sid: "SSE",
+        },
+        {
+          sid: "S",
+        },
+        {
+          sid: "SSW",
+        },
+        {
+          sid: "SW",
+        },
+        {
+          sid: "WSW",
+        },
+        {
+          sid: "W",
+        },
+        {
+          sid: "WNW",
+        },
+        {
+          sid: "NW",
+        },
+        {
+          sid: "NNW",
+        },
+        {
+          sid: "C",
+        },
+      ],
+      pickerOptions: {
+        // 限制不能选择今天之后的日期
+        disabledDate: (time) => {
+          return time.getTime() > Date.now();
+        },
+      },
+      weatherStation: [],
+      nullArr: [], // 用于存放空数组风向名称
+      fenxiangData: [], // 统计次数
+      maxData: [], // 最大风速数据
+      avgData: [], // 平均风速数据
+      loading: true,
+    };
+  },
+  created() {
+    // let startDate = new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 10);
+    // let endDate = new Date();
+    // this.dateRange = [startDate, endDate];
+  },
+  mounted() {
+    this.getData();
+  },
+  methods: {
+    getData() {
+      axios
+        .post("http://172.24.97.251:8082/weather/getWindProbabilityMon", {
+          startTime: this.dateRange[0],
+          endTime: this.dateRange[1],
+          site: this.value,
+        })
+        .then((res) => {
+          if (res.data.s == 1) {
+            this.weatherStation.push(windSpeedData.d);
+            let directionName = null;
+            this.weatherStation.forEach((item, index) => {
+              // 循环遍历this.tableData.sid中的值来判断风向名称
+              this.tableData.forEach((item, index) => {
+                switch (item.sid) {
+                  case "N":
+                    directionName = "北";
+                    break;
+                  case "NNE":
+                    directionName = "东北东";
+                    break;
+                  case "NE":
+                    directionName = "东北";
+                    break;
+                  case "ENE":
+                    directionName = "东东北";
+                    break;
+                  case "E":
+                    directionName = "东";
+                    break;
+                  case "ESE":
+                    directionName = "东东南";
+                    break;
+                  case "SE":
+                    directionName = "东南";
+                    break;
+                  case "SSE":
+                    directionName = "南东南";
+                    break;
+                  case "S":
+                    directionName = "南";
+                    break;
+                  case "SSW":
+                    directionName = "南西南";
+                    break;
+                  case "SW":
+                    directionName = "西南";
+                    break;
+                  case "WSW":
+                    directionName = "西西南";
+                    break;
+                  case "W":
+                    directionName = "西";
+                    break;
+                  case "WNW":
+                    directionName = "西西北";
+                    break;
+                  case "NW":
+                    directionName = "西北";
+                    break;
+                  case "NNW":
+                    directionName = "北西北";
+                    break;
+                  case "C":
+                    directionName = "静风";
+                    break;
+                }
+                this.nullArr.push({ sid: directionName });
+              });
+            });
+            // 风向次数
+            this.fenxiangData.push(
+              this.weatherStation[0].N_fengxiang,
+              this.weatherStation[0].NNE_fengxiang,
+              this.weatherStation[0].NE_fengxiang,
+              this.weatherStation[0].ENE_fengxiang,
+              this.weatherStation[0].E_fengxiang,
+              this.weatherStation[0].ESE_fengxiang,
+              this.weatherStation[0].SE_fengxiang,
+              this.weatherStation[0].SSE_fengxiang,
+              this.weatherStation[0].S_fengxiang,
+              this.weatherStation[0].SSW_fengxiang,
+              this.weatherStation[0].SW_fengxiang,
+              this.weatherStation[0].WSW_fengxiang,
+              this.weatherStation[0].W_fengxiang,
+              this.weatherStation[0].WNW_fengxiang,
+              this.weatherStation[0].NW_fengxiang,
+              this.weatherStation[0].NNW_fengxiang,
+              this.weatherStation[0].C_fengxiang
+            );
+            //最大风速
+            this.maxData.push(
+              this.weatherStation[0].N_max,
+              this.weatherStation[0].NNE_max,
+              this.weatherStation[0].NE_max,
+              this.weatherStation[0].ENE_max,
+              this.weatherStation[0].E_max,
+              this.weatherStation[0].ESE_max,
+              this.weatherStation[0].SE_max,
+              this.weatherStation[0].SSE_max,
+              this.weatherStation[0].S_max,
+              this.weatherStation[0].SSW_max,
+              this.weatherStation[0].SW_max,
+              this.weatherStation[0].WSW_max,
+              this.weatherStation[0].W_max,
+              this.weatherStation[0].WNW_max,
+              this.weatherStation[0].NW_max,
+              this.weatherStation[0].NNW_max
+            );
+            // 平均风速
+            this.avgData.push(
+              this.weatherStation[0].N_avg,
+              this.weatherStation[0].NNE_avg,
+              this.weatherStation[0].NE_avg,
+              this.weatherStation[0].ENE_avg,
+              this.weatherStation[0].E_avg,
+              this.weatherStation[0].ESE_avg,
+              this.weatherStation[0].SE_avg,
+              this.weatherStation[0].SSE_avg,
+              this.weatherStation[0].S_avg,
+              this.weatherStation[0].SSW_avg,
+              this.weatherStation[0].SW_avg,
+              this.weatherStation[0].WSW_avg,
+              this.weatherStation[0].W_avg,
+              this.weatherStation[0].WNW_avg,
+              this.weatherStation[0].NW_avg,
+              this.weatherStation[0].NNW_avg
+            );
+            //按照顺序添加到this.nullArr中
+            this.fenxiangData.forEach((item, index) => {
+              this.nullArr[index].fengxiang = item;
+            });
+            this.maxData.forEach((item, index) => {
+              this.nullArr[index].max = item;
+            });
+            this.avgData.forEach((item, index) => {
+              this.nullArr[index].avg = item;
+            });
+          }
+          this.loading = false;
+          this.drawLine();
+        })
+        .catch((err) => {
+          this.weatherStation.push(windSpeedData.d);
+          let directionName = null;
+          this.weatherStation.forEach((item, index) => {
+            // 循环遍历this.tableData.sid中的值来判断风向名称
+            this.tableData.forEach((item, index) => {
+              switch (item.sid) {
+                case "N":
+                  directionName = "北";
+                  break;
+                case "NNE":
+                  directionName = "东北东";
+                  break;
+                case "NE":
+                  directionName = "东北";
+                  break;
+                case "ENE":
+                  directionName = "东东北";
+                  break;
+                case "E":
+                  directionName = "东";
+                  break;
+                case "ESE":
+                  directionName = "东东南";
+                  break;
+                case "SE":
+                  directionName = "东南";
+                  break;
+                case "SSE":
+                  directionName = "南东南";
+                  break;
+                case "S":
+                  directionName = "南";
+                  break;
+                case "SSW":
+                  directionName = "南西南";
+                  break;
+                case "SW":
+                  directionName = "西南";
+                  break;
+                case "WSW":
+                  directionName = "西西南";
+                  break;
+                case "W":
+                  directionName = "西";
+                  break;
+                case "WNW":
+                  directionName = "西西北";
+                  break;
+                case "NW":
+                  directionName = "西北";
+                  break;
+                case "NNW":
+                  directionName = "北西北";
+                  break;
+                case "C":
+                  directionName = "静风";
+                  break;
+              }
+              this.nullArr.push({ sid: directionName });
+            });
+          });
+          // 风向次数
+          this.fenxiangData.push(
+            this.weatherStation[0].N_fengxiang,
+            this.weatherStation[0].NNE_fengxiang,
+            this.weatherStation[0].NE_fengxiang,
+            this.weatherStation[0].ENE_fengxiang,
+            this.weatherStation[0].E_fengxiang,
+            this.weatherStation[0].ESE_fengxiang,
+            this.weatherStation[0].SE_fengxiang,
+            this.weatherStation[0].SSE_fengxiang,
+            this.weatherStation[0].S_fengxiang,
+            this.weatherStation[0].SSW_fengxiang,
+            this.weatherStation[0].SW_fengxiang,
+            this.weatherStation[0].WSW_fengxiang,
+            this.weatherStation[0].W_fengxiang,
+            this.weatherStation[0].WNW_fengxiang,
+            this.weatherStation[0].NW_fengxiang,
+            this.weatherStation[0].NNW_fengxiang,
+            this.weatherStation[0].C_fengxiang
+          );
+          //最大风速
+          this.maxData.push(
+            this.weatherStation[0].N_max,
+            this.weatherStation[0].NNE_max,
+            this.weatherStation[0].NE_max,
+            this.weatherStation[0].ENE_max,
+            this.weatherStation[0].E_max,
+            this.weatherStation[0].ESE_max,
+            this.weatherStation[0].SE_max,
+            this.weatherStation[0].SSE_max,
+            this.weatherStation[0].S_max,
+            this.weatherStation[0].SSW_max,
+            this.weatherStation[0].SW_max,
+            this.weatherStation[0].WSW_max,
+            this.weatherStation[0].W_max,
+            this.weatherStation[0].WNW_max,
+            this.weatherStation[0].NW_max,
+            this.weatherStation[0].NNW_max
+          );
+          // 平均风速
+          this.avgData.push(
+            this.weatherStation[0].N_avg,
+            this.weatherStation[0].NNE_avg,
+            this.weatherStation[0].NE_avg,
+            this.weatherStation[0].ENE_avg,
+            this.weatherStation[0].E_avg,
+            this.weatherStation[0].ESE_avg,
+            this.weatherStation[0].SE_avg,
+            this.weatherStation[0].SSE_avg,
+            this.weatherStation[0].S_avg,
+            this.weatherStation[0].SSW_avg,
+            this.weatherStation[0].SW_avg,
+            this.weatherStation[0].WSW_avg,
+            this.weatherStation[0].W_avg,
+            this.weatherStation[0].WNW_avg,
+            this.weatherStation[0].NW_avg,
+            this.weatherStation[0].NNW_avg
+          );
+          //按照顺序添加到this.nullArr中
+          this.fenxiangData.forEach((item, index) => {
+            this.nullArr[index].fengxiang = item;
+          });
+          this.maxData.forEach((item, index) => {
+            this.nullArr[index].max = item;
+          });
+          this.avgData.forEach((item, index) => {
+            this.nullArr[index].avg = item;
+          });
+          this.loading = false;
+          this.drawLine();
+        });
+    },
+    drawLine() {
+      let myChart = this.$echarts.init(document.getElementById("echartsDiv"));
+      myChart.setOption({
+        color: ["#9ECF8E", "#ff9800"],
+        title: {
+          text: "风玫瑰图",
+          x: "center",
+          textStyle: {
+            color: "#30465D",
+            fontSize: "14",
+            fontWeight: "bold",
+          },
+        },
+        toolbox: {
+          show: true,
+          itemSize: 20,
+          right: 20,
+          feature: {
+            saveAsImage: {
+              show: true,
+            },
+          },
+        },
+        angleAxis: {
+          type: "category",
+          data: [
+            "北",
+            "东北东",
+            "东北",
+            "东东北",
+            "东",
+            "东东南",
+            "东南",
+            "南东南",
+            "南",
+            "南西南",
+            "西南",
+            "西西南",
+            "西",
+            "西西北",
+            "西北",
+            "北西北",
+          ],
+          boundaryGap: false,
+          axisTick: {
+            alignWithLabel: true,
+          },
+          axisLine: {
+            lineStyle: {
+              color: "#30465D",
+            },
+          },
+          splitLine: {
+            show: true,
+          },
+        },
+        radiusAxis: {
+          axisLine: {
+            show: false,
+          },
+          axisTick: {
+            show: false,
+          },
+          axisLabel: {
+            formatter: "{value}m/s",
+            showMaxLabel: false,
+            color: "#30465D",
+          },
+          z: 10,
+        },
+        tooltip: {
+          trigger: "axis",
+          // 添加m/s并显示颜色
+          formatter: function (params) {
+            let res = params[0].name + "风向";
+            for (let i = 0, l = params.length; i < l; i++) {
+              res +=
+                "<br/>" +
+                params[i].marker +
+                params[i].seriesName +
+                "：" +
+                params[i].value +
+                "m/s";
+            }
+            return res;
+          },
+        },
+        polar: {},
+        legend: {
+          show: true,
+          right: 0,
+          bottom: 0,
+          type: "scroll",
+          orient: "vertical",
+          data: ["最大风速", "平均风速"],
+        },
+        series: [
+          {
+            type: "bar",
+            data: this.maxData,
+            coordinateSystem: "polar",
+            name: "最大风速",
+            stack: "a",
+            areaStyle: {},
+          },
+          {
+            type: "bar",
+            data: this.avgData,
+            coordinateSystem: "polar",
+            name: "平均风速",
+            stack: "a",
+            areaStyle: {},
+          },
+        ],
+      });
+    },
+    // 导出表格
+    importClick() {
+      let vv = XlSX.utils.table_to_book(document.getElementById("daochu"));
+      let vbouts = XlSX.write(vv, {
+        bookType: "xlsx",
+        bookSST: true,
+        type: "array",
+      });
+      try {
+        FileSaver.saveAs(
+          new Blob([vbouts], { type: "application/octet-stream" }),
+          "数据导出.xlsx"
+        );
+      } catch (e) {
+        if (typeof console !== "undefined") console.log(e, vbouts);
+      }
+      return vbouts;
+    },
+  },
+};
+</script>
+
+<style lang="less" scoped>
+.content {
+  font-size: 14px;
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  background: #f5f6f7;
+  & .box_card {
+    height: 100%;
+  }
+  .content_left {
+    height: 100%;
+    width: 60%;
+    .top {
+      padding-bottom: 20px;
+      .btn {
+        margin-left: 10px;
+      }
+    }
+  }
+  .content_right {
+    flex: 1;
+    padding-left: 16px;
+    .box_card {
+      position: relative;
+      .downloadBtn {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+      }
+      .downloadImg {
+        padding-top: 50px;
+        position: absolute;
+        top: 45%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    }
+  }
+}
+</style>

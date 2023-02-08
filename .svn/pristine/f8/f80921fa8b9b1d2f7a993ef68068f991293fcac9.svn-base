@@ -1,0 +1,139 @@
+<template>
+    <div class="content">
+        <div class="content_left">
+            <el-card class="box_card">
+                <ul>
+                    <li v-for="item in dataList" :key="item.id">
+                        <el-button :type="selectId==item.id?'primary':''" class="cBtn" round size="medium" @click="countyChange(item.id)">{{item.name}}</el-button>
+                        <span :class="{'no':!item.finish,'yes':item.finish}">{{item.finish?'已完成':'未制作'}}</span>
+                    </li>
+                </ul>
+            </el-card>
+        </div>
+        <div class="content_right">
+            <el-card class="box_card">
+                <div class="header">
+                    <el-row>
+                        <el-col :span="12">                           
+                            <el-upload action="/"
+                                    accept=".txt"		
+                                    :show-file-list="false"	                      
+                                    :before-upload="beforeUpload"		                         
+                                    :file-list="fileList"
+                                    >
+                                    <el-button type="primary" size="medium">上传TXT文件</el-button>
+                            </el-upload>
+                        </el-col>
+                        <el-col :span="12" style="text-align:right">
+                            <el-button type="primary" size="medium">发送</el-button>
+                            <el-button type="warning" size="medium" @click="downloadTxt">下载</el-button>
+                            <el-button type="success" size="medium" @click="save">保存</el-button>
+                        </el-col>
+                    </el-row>  
+                </div>
+                <el-input class="textareaClass" type="textarea" v-model="value" :autosize="{ minRows: 20}" placeholder="请输入内容"></el-input>
+            </el-card>
+        </div>
+    </div>
+</template>
+
+<script>
+import { saveAs } from 'file-saver'
+import {txtFileSetting} from "../../minx"
+export default {
+    name: "HydropowerStation",
+    data(){
+        return{
+            value: "",
+            selectId: 1,
+            dataList:[
+                {id: 1, name: "南片河流域", finish: false},
+                {id: 2, name: "南袜河流域", finish: false},
+            ],
+            fileList:[]
+        }
+    },
+    mixins:[txtFileSetting],
+    methods:{
+        countyChange(id){//切换流域
+            this.selectId = id
+        },
+        save(){//保存
+            if(!this.value){
+                this.$message.error("内容不能为空")
+                return
+            }
+            this.dataList.forEach(item=>{
+                if(this.selectId==item.id){
+                    item.finish = true
+                }
+            })
+            this.$message.success("保存成功")
+        },  
+        downloadTxt() {//下载txt文件
+            let txtName = ""
+            this.dataList.forEach(item=>{
+                if(this.selectId==item.id){
+                    txtName = item.name
+                }
+            })
+            let str = this.value
+            let strData = new Blob([str], { type: 'text/plain;charset=utf-8' });
+            saveAs(strData, `未来一周${txtName}天气预报.txt`);
+        },      
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.content{
+    height: 100%;
+    display: flex;
+    padding: 16px;
+    font-size: 14px;
+    & .box_card{
+        height: 100%;
+    }
+    .content_left{
+        width: 300px; 
+        ul{
+            margin:0;
+            padding:0;
+            list-style: none;
+            li{
+                margin-bottom: 20px;
+                .cBtn{
+                    width: 120px;
+                    font-size: 16px;
+                }
+                position: relative;
+                span{
+                    position: absolute;
+                    right: 0;
+                    top: 50%;
+                    transform: translateY(-50%);
+                }
+                span.no{
+                    color: rgb(255, 72, 72);
+                }
+                span.yes{
+                    color: rgb(44, 202, 123);
+                }
+            }
+        }    
+    }
+    .content_right{
+        flex: 1;
+        padding-left: 16px;
+        .header{
+            padding-bottom: 20px;
+        }
+        .textareaClass{
+            /deep/ textarea{
+                resize:none;
+                font-size: 18px;
+            }
+        }
+    }
+}
+</style>

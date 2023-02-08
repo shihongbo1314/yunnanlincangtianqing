@@ -1,0 +1,206 @@
+<template>
+    <div class="content">
+      <!-- <div class="header">
+        <el-tooltip class="item" effect="dark" content="取消选中" placement="bottom">
+          <el-button type="info" icon="el-icon-close" circle @click="handleClose"></el-button>
+        </el-tooltip> 
+        <el-tooltip class="item" effect="dark" content="添加" placement="bottom">
+          <el-button type="success" icon="el-icon-plus" circle @click="handleAdd"></el-button>
+        </el-tooltip>   
+        <el-tooltip class="item" effect="dark" content="修改" placement="bottom">
+          <el-button type="warning" icon="el-icon-edit" circle @click="handleUpdate"></el-button>
+        </el-tooltip> 
+        <el-tooltip class="item" effect="dark" content="删除" placement="bottom">
+          <el-button type="danger" icon="el-icon-delete" circle @click="handleDalete"></el-button>
+        </el-tooltip>                        
+      </div> -->
+      <div class="bottom">
+        <el-tree    
+          :key="treeKey"      
+          :data="data" 
+          :props="defaultProps" 
+          :highlight-current="true"
+          ref="tree"
+          node-key="id"
+          default-expand-all
+          @node-click="handleNodeClick"></el-tree>
+      </div> 
+        <!-- 添加/修改对话框 -->
+        <el-dialog
+            :title="dialogStatus"
+            :visible.sync="dialogVisible"
+            :close-on-click-modal="false"
+            width="30%">
+            <el-form ref="form" :model="form" label-width="80px" :rules="rules">
+                <el-form-item label="群组名称" prop="groupName">
+                    <el-input v-model="form.groupName" :maxlength="10" placeholder="请输入群组名称"></el-input>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="handleFun">确 定</el-button>
+            </span>
+        </el-dialog>     
+    </div>
+</template>
+
+<script>
+import request from '@/api/request'
+import {nanoid} from 'nanoid'
+export default {
+    name:"TreeGroup",
+    data() {
+      return {
+        treeKey: 1,
+        data: [{
+          id:1,
+          label: '县区局',
+          group: "县区局",
+          children: [
+                           
+          ]
+        }, {
+          id:10,
+          label: '水电站',
+          group: "水电站",
+          children: []
+        }],
+        defaultProps: {
+          children: 'children',
+          label: 'label'
+        },
+        dialogStatus: "添加一级群组",
+        dialogVisible: false,
+        form:{
+          groupName:""
+        },
+        rules: {
+            groupName: [
+              { required: true, message: '群组名称不能为空', trigger: 'blur' }
+            ]
+        },
+      }
+    },
+    created(){
+        this.getData()
+    },
+    methods: {
+      getData(){
+        request.post('baseUserRegion/list').then((res) => {
+            if (res.data.state == 200) {
+              res.data.records.forEach(item=>{
+                if(item.parentId == 1){
+                  item.label = item.name;
+                  item.type = 1;
+                  this.data[0].children.push(item);
+                }
+              })
+            }
+        });
+        request.post('basinInfo/basinInfoList').then((res) => {
+            if (res.data.state == 200) {
+              res.data.records.forEach(item=>{
+                item.label = item.name;
+                item.type = 2;
+                this.data[1].children.push(item);
+              })
+            }
+        });
+      },
+      handleNodeClick(data) {//节点点击
+        this.selectNodeName = data.label
+        this.selectNodeId = data.id
+        this.selectChild = data.children?(data.children.length!=0?true:false):false
+        this.$bus.$emit("setGroupData",data)
+      },
+      handleAdd(){//添加弹框
+        this.form={
+          groupName: ""
+        }
+        let curKey = this.$refs.tree.getCurrentKey()
+        if(curKey){
+          this.dialogStatus= `添加${this.selectNodeName}下的群组`
+        }else{
+          this.dialogStatus= "添加一级群组"
+        }
+        this.dialogType = "添加"
+        this.dialogVisible = true
+      },
+      handleUpdate(){//修改弹窗
+        let curKey = this.$refs.tree.getCurrentKey()
+        if(curKey){          
+          this.form={
+            groupName: this.selectNodeName
+          }
+          this.dialogStatus= `修改${this.selectNodeName}的群组名称`
+          this.dialogType = "修改"
+          this.dialogVisible = true
+        }else{
+          this.$message.error("请点击选中要修改名称的群组")
+        }        
+      },
+      handleClose(){//取消选中
+        this.$refs.tree.setCurrentKey(null)
+        this.$bus.$emit("setGroupData","")
+      },
+      handleFun(){//添加修改事件
+        this.$refs.form.validate((valid) => {
+			    if(valid) {
+            if(this.dialogType=="添加"){
+              let curKey = this.$refs.tree.getCurrentKey()
+              let obj = {
+                id: nanoid(),
+                label: this.form.groupName
+              }
+              let addId = this.data[0]["id"]
+              if(curKey){
+                addId = this.selectNodeId
+                this.$refs.tree.append(obj,addId)
+              }else{
+                this.$refs.tree.insertBefore(obj,addId)
+              }
+              this.$message.success("添加成功")
+            }else{
+              this.$refs.tree.getNode(this.selectNodeId).data.label = this.form.groupName
+              this.$message.success("修改成功")
+            }            
+            this.dialogVisible = false
+          }
+        })
+      },
+      handleDalete(){//删除
+        let curKey = this.$refs.tree.getCurrentKey()
+        if(curKey){    
+          if(this.selectChild){
+            this.$message.error("该群组下还有子群组不能直接删除，请先删除子群组之后，再进行删除")
+          }else{
+            this.$confirm(`确定要删除${this.selectNodeName}这个群组吗？确定删除之后该群组下的人员信息也将一起删除！`, '提示', {
+              type: 'warning'
+            }).then(() => {
+              this.$refs.tree.remove(this.selectNodeId)
+              this.$message.success("删除成功")
+              this.$bus.$emit("deleteTableData",this.selectNodeName)
+            })            
+          }          
+        }else{
+          this.$message.error("请点击选中要删除的群组")
+        } 
+      }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.content{
+  height: 100%;
+  .header{
+    text-align: right;
+    padding-bottom: 10px;
+  }
+  .bottom{
+    height: calc(100% - 42px);
+    overflow: auto;
+  }
+}
+
+</style>

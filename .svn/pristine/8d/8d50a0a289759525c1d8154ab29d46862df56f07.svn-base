@@ -1,0 +1,83 @@
+<template>
+  <div class="menu_yujing">
+    <!-- <el-table
+    :data="tableData.showData"
+    border
+    style="width: 100%">
+    <el-table-column
+      v-for="(item, index) in tableData.keys"
+      :key="index"
+      :prop="item.key"
+      :label="item.name"
+      width="180">
+    </el-table-column>
+  </el-table> -->
+  <iframe src="http://61.153.185.211:9080/LCNYQX/html/main/dataQuery/dataQueryNongYe.html?v=14" width="100%" height="100%" style="border:0"></iframe>
+  <!-- <iframe src="http://127.0.0.1:8080/LCNYQX/html/main/dataQuery/dataQueryNongYe.html?v=14" width="100%" height="100%" style="border:0"></iframe> -->
+  </div>
+</template>
+<script>
+// @ is an alias to /src
+export default {
+  data(){
+    return{
+      docEditor : null,
+      tableData : {
+        showData : null,
+        keys : [],
+        data : [
+          ["地区", "2022-02-01", "2022-02-02", "2022-02-03", "2022-02-04", "2022-02-05"],
+          ["济南", 0.5, 0.8, 0.6, 0.1, 2.2],
+          ["潍坊", 0.5, 0.8, 0.6, 0.1, 2.2],
+          ["威海", 0.5, 0.8, 0.6, 0.1, 2.2],
+          ["青岛", 0.5, 0.8, 0.6, 0.1, 2.2],
+          ["日照", 0.5, 0.8, 0.6, 0.1, 2.2],
+          ["烟台", 0.5, 0.8, 0.6, 0.1, 2.2],
+          ["菏泽", 0.5, 0.8, 0.6, 0.1, 2.2],
+        ],
+      },
+    }
+  },
+  created(){
+    // 界面初始化前调用方法
+    // this.initMap();
+  //  this.initTableData();
+  },
+  mounted(){
+    // 界面显示完成后调用方法
+    // this.initMap();
+    // this.initTableData();
+  },
+  methods: {
+    initTableData (){
+      this.tableData.showData = [];
+      this.tableData.keys = [];
+      this.tableData.data.forEach((item, index)=>{
+        console.log(item, index)
+        if(index == 0){
+          item.forEach((title, i)=>{
+            this.tableData.keys.push({
+              prop : i, // 排序
+              name : title,
+              key : title,
+            })
+          })
+        }else{
+          let obj = {};
+          item.forEach((info, i)=>{
+            obj[this.tableData.keys[i].key] = info;
+          })
+          this.tableData.showData.push(obj);
+        }
+      })
+    }
+  }
+}
+</script>
+
+<style scoped>
+.menu_yujing{
+  width: 100%;
+  height: 100%;
+}
+</style>

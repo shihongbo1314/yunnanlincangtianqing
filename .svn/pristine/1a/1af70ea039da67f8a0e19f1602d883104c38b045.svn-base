@@ -1,0 +1,186 @@
+<template>
+    <div class="GeoHazardMain">
+        <div class="contentLeft">
+            <el-card class="box_card">
+                <div class="top">                
+                    数据时间
+                    <el-date-picker
+                        v-model="startTime"
+                        style="margin-left: 10px"
+                        type="date"
+                        size="large"
+                        :picker-options="pickerOptions"
+                        placeholder="开始时间"
+                        >
+                    </el-date-picker>
+                        -
+                    <el-date-picker
+                        style="margin-right: 20px"
+                        v-model="endTime"
+                        type="date"
+                        size="large"
+                        :picker-options="pickerOptions"
+                        placeholder="结束时间"
+                    >
+                    </el-date-picker>
+                    <el-button
+                        class="btn"
+                        type="primary"
+                        @click="getData()"
+                        size="medium"
+                    >查询</el-button>
+                </div>
+                <div class="bottom">
+                    <ul>
+                        <li v-for="(i,index) in imageArray" :key="index" :class="selectIndex==index?'active':''" @click="handleChange(index)">
+                            <img :src="i.url">
+                            <p>{{i.time}}</p>
+                        </li>
+                    </ul>                
+                </div>
+        </el-card> 
+        </div>
+        <div class="contentRight">
+            <el-card class="box_card">
+                <el-image 
+                    style="width: 850px;"
+                    :src="bigUrl" 
+                    :preview-src-list="srcList">
+                    <div slot="error" class="image-slot">
+                        <i class="el-icon-picture-outline"></i>
+                    </div>
+                </el-image>
+            </el-card>
+        </div>               
+    </div>
+</template>
+
+<script>
+import service from "@/api/request"
+import {DateGrid} from "@/utils"
+export default {
+    name: "GeoHazard",
+    data(){
+        return{
+            startTime: "",
+            endTime: "",
+            size: 10,
+            current: 1,
+            imageArray: [],
+            selectIndex: 0,
+            bigUrl: "",
+            srcList: [],
+            pickerOptions: {
+                disabledDate(time) {
+                    return time.getTime() > Date.now() - 8.64e6; //只能选择今天及今天之前的日期
+                },
+            },
+        }
+    },
+    created(){
+        this.startTime = new Date(new Date().getTime()-1000*60*60*24*7)
+        this.endTime = new Date()
+
+        this.getData()
+    },
+    methods:{
+        getData(){//获取数据
+            service.post("/addressdisaster/getAddressDisasterInfo",{
+                startHour: 0,
+                endHour: 24,
+                startTime: DateGrid(this.startTime,"yyyyMMdd"),
+                endTime: DateGrid(this.endTime,"yyyyMMdd")
+            }).then((res) => {
+                this.imageArray = []
+                if(res.data.s==1){
+                    res.data.d.forEach(element => {
+                        let urlFileArr = element.pngname.split("_")
+                        let urlFile = urlFileArr[urlFileArr.length-2]
+                        let url = `${this.$store.state.fileUrl}/AddressDisaster/${urlFile}/${element.pngname}`
+                        let obj = {
+                            url: url,
+                            time: this.getDateStr(element.time)
+                        }
+                        this.srcList.push(url)
+                        this.imageArray.push(obj)
+                    })
+                    this.handleChange(0)
+                }else{
+                    this.bigUrl = ""
+                    this.$message.error("暂无数据")
+                }                
+            })
+        },
+        handleChange(index){//图片切换
+            this.selectIndex = index
+            this.bigUrl = this.imageArray[index].url
+        },
+        getDateStr(dateStr){//时间格式切换
+            let str = dateStr.substring(0,4)+"年"+dateStr.substring(4,6)+"月"+dateStr.substring(6,8)+"日"
+            return str
+        }
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.GeoHazardMain{
+    height: 100%;
+    height: 100%;
+    padding: 16px;
+    background: #f5f6f7;
+    display: flex;
+    & .box_card {
+       height: 100%;
+    }
+    .contentLeft {
+        height: 100%;
+        width: 700px;
+        /deep/ .el-card__body{
+            height: 100%;
+        }
+        .top{
+            margin-bottom: 20px;
+        }
+        .bottom{
+            height: calc(100% - 60px);
+            overflow: auto;
+            ul{
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                li{
+                    width: 440px;
+                    margin: 0 auto;
+                    text-align: center;
+                    padding: 20px 0;
+                    cursor: pointer;
+                    img{
+                        width: 400px;
+                    }
+                    &.active{
+                        background: #dcecff;
+                    }
+                    p{
+                        margin: 0;
+                        margin-top: 10px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    }
+                }
+            }
+        }
+    }
+    .contentRight {
+        height: 100%;
+        flex: 1;
+        padding-left: 16px;
+        /deep/ .el-card__body{
+            height: 100%;
+            overflow: auto;
+            text-align: center;
+        }
+    }
+}
+
+</style>

@@ -1,0 +1,124 @@
+import request from './request'
+// 用户登录
+export function userLogin(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/baseUserInfo/login',
+        method: 'post',
+        params
+    })
+}
+// 分页获得用户
+export function userPage(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/baseUserInfo/page',
+        method: 'post',
+        params
+    })
+}
+// 获得所有角色
+export function getRole(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/baseUserRole/list',
+        method: 'post',
+        params
+    })
+}
+// 添加用户
+export function addUser(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/baseUserInfo/insert',
+        method: 'post',
+        params
+    })
+}
+// 修改用户
+export function editorUser(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/baseUserInfo/update',
+        method: 'post',
+        params
+    })
+}
+// 删除用户
+export function deleteUserData(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/baseUserInfo/delete',
+        method: 'post',
+        params
+    })
+}
+// ----------------------------------------查询统计----------------------------------------
+// 查询日数据降雨
+export function rainfallDay(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getRainProbabilityDay',
+        method: 'post',
+        params
+    })
+}
+// 查询月数据降雨
+export function rainfallMon(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getRainProbabilityMon',
+        method: 'post',
+        params
+    })
+}
+// 获得历史极值
+export function getExtremum(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getExtremum',
+        method: 'post',
+        params
+    })
+}
+// 获得风向统计月数据
+export function getWindDirection(params) {
+    return request({
+        url: 'http://172.24.97.251:8082/weather/getExtremum',
+        method: 'post',
+        params
+    })
+}
+
+// ----------------------------------------产品制作----------------------------------------
+// 未来24小时城市天气预报
+export function getForecastCity(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/productWeatherCity/getCityWeather',
+        method: 'post',
+        params
+    })
+}
+// 获得所有流域
+export function getDrainageBasin(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/basinInfo/basinInfoList',
+        method: 'post',
+        params
+    })
+}
+// 获得流域下站点列表
+export function getSiteList(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/basinInfo/basinStationList',
+        method: 'post',
+        params
+    })
+}
+// 添加和修改流域下站点
+export function addDrainageBasinSite(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/basinInfo/saveOrUpdateBasinStation',
+        method: 'post',
+        params
+    })
+}
+// 删除流域下站点
+export function deleteSite(params) {
+    return request({
+        url: 'http://61.153.185.211:8082/basinInfo/delete',
+        method: 'post',
+        params
+    })
+}

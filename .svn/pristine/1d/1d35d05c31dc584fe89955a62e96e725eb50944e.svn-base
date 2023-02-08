@@ -1,0 +1,779 @@
+<template>
+    <div class="content">
+        <div class="contentLeft">
+            <el-card class="box_card" :body-style="{height: '100%'}">
+                <div class="header">
+                    <el-row>
+                        <el-col :span="12">
+                            <el-upload
+                            action="/"
+                            accept=".txt"
+                            :show-file-list="false"
+                            :before-upload="beforeUpload"
+                            :file-list="fileList"
+                            >
+                            <el-button type="primary" size="medium">上传TXT文件</el-button>
+                            </el-upload>
+                        </el-col>
+                        <el-col :span="12" style="text-align: right">
+                            <el-button type="warning" size="medium" @click="downloadTxt">下载</el-button>
+                            <el-button type="success" size="medium" @click="save">保存</el-button>
+                            <el-button v-if="kefuFlog" type="primary" plain size="medium" @click="uploadProvince">上传至省服务器</el-button>
+                            <el-button v-if="kefuFlog" type="primary" plain size="medium" @click="sendMessage">发送短信</el-button>
+                        </el-col>
+                    </el-row>
+                </div>
+                <el-input
+                    class="textareaClass"
+                    type="textarea"
+                    v-model="value"
+                    :autosize="{ minRows: 20 }"
+                    placeholder="请输入内容"
+                ></el-input>
+            </el-card>
+        </div>
+        <div class="contentRight">
+            <el-card class="box_card" :body-style="{height: '100%'}">
+                <div class="header">
+                    <h3>历史记录</h3>                      
+                </div>
+                <div class="tableDiv">
+                    <el-table
+                        :data="tableData"
+                        border
+                        stripe
+                        style="width: 100%"
+                        class="commonTable">
+                        <el-table-column
+                            type="index"
+                            label="序号"
+                            align="center"
+                            width="50">
+                        </el-table-column>
+                        <el-table-column
+                            prop="time"
+                            align="center"
+                            label="时间">
+                        </el-table-column>
+                        <el-table-column
+                            prop="state"
+                            align="center"
+                            width="80"
+                            label="短信状态">
+                            <template slot-scope="scope">
+                                <template v-if="scope.row.state=='send'||scope.row.state=='sendAndUploaded'">
+                                    <el-button class="btnText" @click="getMessageData(scope.row)" type="text">已发送</el-button>
+                                </template>
+                                <template v-else>
+                                    <span style="color: #909399;font-size: 12px">未发送</span>
+                                </template>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="state"
+                            align="center"
+                            width="80"
+                            label="上传状态">
+                            <template slot-scope="scope">
+                                <template v-if="scope.row.state=='uploaded'||scope.row.state=='sendAndUploaded'">
+                                    <span style="color: #67C23A;font-size: 12px">已上传</span>
+                                </template>
+                                <template v-else>
+                                    <span style="color: #909399;font-size: 12px">未上传</span>
+                                </template>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                                align="center"
+                                width="80"
+                                label="操作">
+                                <template slot-scope="scope">  
+                                    <el-button
+                                    size="mini"
+                                    type="text"
+                                    icon="el-icon-search"
+                                    @click="handleLook(scope.row)">查看</el-button>     
+                                </template>
+                        </el-table-column>
+                    </el-table>
+                    <el-pagination
+                        @current-change="currentChange"
+                        style="margin-top: 10px;text-align:center"
+                        layout="prev, pager, next"
+                        :page-size="size"
+                        :total="total">
+                    </el-pagination>
+                </div>
+                
+                <el-dialog
+                    :title="title"
+                    :visible.sync="textdialogVisible"
+                    :close-on-click-modal="false"
+                    :close-on-press-escape="false"
+                    width="30%">
+                    <div class="dialogDiv">
+                        <el-input type="textarea" v-model="content" :autosize="true" :readonly="true" resize="none" style="font-size: 16px"></el-input>
+                    </div>
+                </el-dialog>
+            </el-card>
+        </div>  
+        <!-- S 预报全部水库发送弹框 -->
+		<el-dialog
+		:title="'群组短信发送情况'"
+		:visible.sync="ybDialogVisible"
+		width="30%"
+		custom-class="messageDialog"
+		center
+		>
+		<!-- 发送水库表格 -->
+		<el-table
+			class="statusTbale commonTable"
+			height="400"
+            stripe
+            border
+            :key="messageTableKey"
+			:data="YBmessageTable"
+			style="width: 100%">
+				<el-table-column
+				prop="name"
+				width="100"
+				label="群组名称">
+				</el-table-column>
+				<el-table-column
+				prop="status"
+                align="center"
+				label="发送状态">
+					<template slot-scope="scope">					
+						<span v-html="scope.row.status"></span>
+					</template>
+				</el-table-column>
+				<el-table-column label="操作" width="80" align="center">
+					<template slot-scope="scope">
+						<el-button
+							type="text"
+							class="warning"
+							@click="handleSeach(scope.$index, scope.row)"
+							v-if="scope.row.btnShow"
+						>查看</el-button>
+					</template>
+				</el-table-column>
+			</el-table>
+			<div style="text-align:center;margin-top:20px">
+				<el-button type="success" @click="yb3DaySendMsgAll" :loading="YBmessageLoading">发送短信</el-button>
+			</div>			
+		</el-dialog>
+		<!-- E 预报全部水库发送弹框 -->
+
+        <!-- S 实况预报发送弹框 -->
+		<el-dialog
+		:title="messageObj.name+'短信发送情况'"
+		:visible.sync="dialogVisible"
+		width="30%"
+		custom-class="messageDialog"
+		center
+		>
+            <!-- 发送人数统计和发送内容 -->
+            <el-row>
+                <el-col :span="12" class="diaTopLeft diaTop">
+                    <p>发送情况</p>
+                    <ul class="clearFloat">
+                        <li>
+                            <span>共计发送</span>
+                            <h2 style="#333333">{{messageObj.all}}人</h2>
+                        </li>
+                        <li>
+                            <span>成功发送</span>
+                            <h2 style="color:#00DE65">{{messageObj.success}}人</h2>
+                        </li>
+                        <li>
+                            <span>失败发送</span>
+                            <h2 style="color:#FF5454">{{messageObj.error}}人</h2>
+                        </li>
+                    </ul>
+                </el-col>
+                <el-col :span="12" class="diaTopLeft diaTop">
+                    <p>发送内容</p>
+                    <div ref="ybMsg">{{messageObj.content}}</div>
+                </el-col>
+            </el-row>
+            <div class="line"></div>
+            <!-- 发送人员表格 -->
+            <el-table
+                class="statusTbale commonTable"
+                :data="messageObj.table"
+                stripe
+                border
+                height="200"
+                style="width: 100%">
+                <el-table-column
+                prop="name"
+                label="姓名">
+                </el-table-column>
+                <el-table-column
+                prop="mobile"
+                label="手机">
+                </el-table-column>
+                <el-table-column
+                prop="status"
+                label="发送状态">
+                    <template slot-scope="scope">
+                        <span v-html="scope.row.status"></span>
+                    </template>
+                </el-table-column>
+                <el-table-column
+                prop="msg"
+                label="原因">
+                </el-table-column>
+            </el-table>
+		</el-dialog>
+		<!-- E 实况预报发送弹框 -->
+        <el-dialog
+            title="短信发送记录"
+            :visible.sync="dialogVisibleRecord"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            custom-class="messageDialog"
+		    center
+            width="30%">
+            <div class="dialogDiv">
+                <el-table
+                    class="commonTable"
+                    stripe
+                    border
+                    :data="tableDataRecord"
+                    style="width: 100%">
+                    <el-table-column
+                        type="index"
+                        label="序号"
+                        align="center"
+                        width="50">
+                    </el-table-column>
+                    <el-table-column
+                    prop="name"
+                    label="群组名称">
+                    </el-table-column>
+                    <el-table-column
+                    prop="saveTime"
+                    label="时间">
+                    <template slot-scope="scope">
+                        {{getDateStr(scope.row.saveTime)}}
+                    </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="80" align="center">
+					<template slot-scope="scope">
+						<el-button
+							type="text"
+							class="warning"
+							@click="handleSeachRecord(scope.row.data)"
+						>查看</el-button>
+					</template>
+				</el-table-column>
+                </el-table>
+            </div>
+        </el-dialog>
+    </div>
+</template>
+<script>
+import { saveAs } from "file-saver";
+import { txtFileSetting } from "@/minx"
+import service from "@/api/request"
+export default {
+    name: "TxtEditor",
+    props: {
+        name: {
+            type: String,
+            default: "下载",
+        },
+    },
+    data() {
+        return {
+            value: "",
+            fileList: [],
+            kefuFlog: false,
+            ybDialogVisible: false,
+            YBmessageTable: [],
+            YBmessageLoading: false,
+            sendHtml: "<div class='cont'><div class='twill'></div><div class='info'>发送中</div></div>",
+            dialogVisible: false,
+            messageObj: {
+                all: 0,
+                success: 0,
+                error: 0,
+                name: "-",
+                title: '实况',
+                content: '',
+                btnShow: false,
+                table: [],
+                code: null,
+                loading: false
+            },
+            messageTableKey: 1,
+            tableData: [],
+            current: 1,
+            size: 15,
+            total: 0,
+            textdialogVisible: false,
+            title: "",
+            content: "",
+            dialogVisibleRecord: false,
+            tableDataRecord: [],
+            recordBtn: false
+        }
+    },
+    mixins: [txtFileSetting],
+    mounted() {
+        let user = JSON.parse(localStorage.getItem("lcqxfzjz"))
+        if(user.roleInfo.id==2){
+            this.kefuFlog = true
+        }
+        this.getData()
+        this.getDivision()
+        this.getTableData()
+    },
+    methods: {
+        getDivision() {//获取区划数据   
+            service.post("/baseUserRegion/list").then((res) => {
+                if(res.data.state==200){
+                    this.YBmessageTable = []
+                    res.data.records.forEach((item) => {
+                        if (item.parentId == 1) {
+                            this.YBmessageTable.push(item)
+                        }
+                    })
+                }               
+            })
+        },
+        getData() {//获取数据
+            let user = JSON.parse(localStorage.getItem("lcqxfzjz"))
+            service.post("/productWeatherCity/getCityWeather",{
+                size: 1,
+                regionId: user.userRegion.id,
+                roleId: user.roleInfo.id,
+            }).then((res) => {
+                if(res.data.state==200){
+                    this.nullId = 
+                    this.data = res.data.records[0]
+                    let content = res.data.records[0].content
+                    this.nullId = res.data.records[0].id
+                    if(content.includes("/n")){
+                        this.value = content.replaceAll("/n","\n")
+                    }else{
+                        this.value = content
+                    }                  
+                }                
+            })
+        },
+        getTableData(){//获取历史记录
+            let user = JSON.parse(localStorage.getItem("lcqxfzjz"))
+            service.post("/productWeatherCity/page",{
+                current: this.current,
+                size: this.size,
+                regionId: user.userRegion.id,
+                roleId: user.roleInfo.id,
+            }).then((res) => {
+                if(res.data.state==200){
+                    this.total = res.data.total
+                    this.tableData = res.data.records
+                }               
+            })
+        },
+        currentChange(val){//改变当前页
+            this.current = val
+            this.getTableData()
+        },
+        handleLook(obj){//查看
+            this.title = obj.time
+             if(obj.content.includes("/n")){
+                this.content = obj.content.replaceAll("/n","\n")
+            }
+            this.textdialogVisible = true
+        },
+        save() {//保存
+            let user = JSON.parse(localStorage.getItem("lcqxfzjz"))
+            if (!this.value) {
+                this.$message.error("内容不能为空")
+                return;
+            }
+            service.post("/productWeatherCity/update",{
+                time: this.data.time,
+                content: this.value,
+                id: this.data.id,
+                regionId: user.userRegion.id,
+                roleId: user.roleInfo.id,
+            }).then((res) => {
+                if(res.data.state==200){
+                    this.$message.success("保存成功")
+                    this.getData()
+                }               
+            })
+        },
+        downloadTxt() {//下载txt文件            
+            let str = this.value
+            let strData = new Blob([str], { type: "text/plain;charset=utf-8" })
+            saveAs(strData, `未来24小时城市天气预报.txt`)
+        },
+        uploadProvince(){//上传至省服务器
+            if (!this.data.id) {
+                this.$message.error("请先完成保存")
+                return;
+            }
+            service.post("/productWeatherCity/upload",{
+                id: this.data.id
+            }).then((res) => {
+                if(res.data.state==200){
+                    this.$message.success("上传成功")
+                }               
+            })
+        },
+        sendMessage(){//发送短信
+            if (!this.value) {
+                this.$message.error("内容不能为空")
+                return;
+            }
+            if (!this.data.id) {
+                this.$message.error("请先完成保存")
+                return;
+            }
+            this.YBmessageTable.forEach((item)=>{
+				item.status = "";
+				item.btnShow = false;
+				item.content = "";
+				item.all = 0;
+				item.success = 0;
+				item.error = 0;
+			})
+            this.ybDialogVisible = true
+        },
+        // 查看操作
+		handleSeach(index, row){
+			this.messageObj.name = row.name
+			this.messageObj.title = "预报"
+			this.messageObj.code = row.code
+			this.messageObj.all = 0
+			this.messageObj.success = 0
+			this.messageObj.error = 0
+			this.messageObj.content = this.value
+			this.messageObj.btnShow = false
+			this.dialogVisible = true
+			this.switchMessageStatus()
+		},
+        // 全部水库一键发送未来三天数据,2、发送短信
+		yb3DaySendMsgAll(){
+			this.YBmessageCode = []
+			this.YBmessageNum = 0
+
+            this.YBmessageLoading = true
+            let checkList = []
+            this.YBmessageTable.forEach(item=>{
+                checkList.push(item.id)
+            })
+            service.post("/smsUserinfo/sendManySms",{
+                content: this.value,
+                type: 1,
+                textInfoId: this.nullId,
+                groupDataid: checkList.join(","),
+                functionType: "city"
+            }).then((res) => {
+                if(res.data.state==200){
+                    let dataArray = res.data.records;                    
+                    for(var j=0;j<this.YBmessageTable.length;j++){
+                        let flog = false
+                        for(var i=0;i<dataArray.length;i++){
+                            if(dataArray[i].other == this.YBmessageTable[j]["id"]){                                
+                                if(dataArray[i].state==200){
+                                    this.YBmessageCode.push(dataArray[i].records)
+                                    this.YBmessageTable[j]["code"] = dataArray[i].records
+                                    this.YBmessageTable[j]["status"] = this.sendHtml
+                                    this.YBmessageTable[j]["btnShow"] = true
+                                }else{
+                                    this.YBmessageTable[j]["status"] = dataArray[i].message
+                                }
+                                flog = true
+                            }
+                        }
+                        if(!flog){
+                            this.YBmessageTable[j]["status"] = "暂未配置短信人员"
+                        }
+                    }
+                    this.messageTableKey++
+                    if(this.YBmessageCode.length != 0){
+                        setTimeout(()=>{
+                            this.ybMessageStatus();
+                        },5000)	
+                    }else{
+                        this.YBmessageLoading = false
+                    }
+                }else{
+                    this.YBmessageLoading = false
+                    this.$message.error("发送异常！");	
+                    this.YBmessageTable.forEach((item)=>{
+                        item.status = "失败"
+                    })
+                    this.messageTableKey++						
+                }                
+            })
+		},
+        // 全部水库一键发送，循环判断短信状态
+		ybMessageStatus(){
+			if(!this.ybDialogVisible){
+				return
+			}
+			if(this.YBmessageCode.length == this.YBmessageNum){
+				let flog = false
+				for(let i=0;i<this.YBmessageTable.length;i++){				
+					if(this.YBmessageTable[i].all){
+						let all = this.YBmessageTable[i].success+this.YBmessageTable[i].error;
+						if(all!=this.YBmessageTable[i].all){
+							flog = true
+						}else{
+							if(this.YBmessageTable[i].success == this.YBmessageTable[i].all){
+								this.YBmessageTable[i]["status"] = "<span style='color:#00DE65'>成功</span>"
+							}else{
+								this.YBmessageTable[i]["status"] = "<span style='color:#FF5454'>失败"+this.YBmessageTable[i].error+"</span>"
+							}						
+						}
+					}					
+				}
+                this.messageTableKey++
+				if(flog){
+					this.YBmessageNum = 0;
+					setTimeout(()=>{
+						this.ybMessageStatus();
+					},5000)	
+				}else{
+					this.YBmessageLoading = false
+				}
+			}else{
+				let code = this.YBmessageCode[this.YBmessageNum];
+				for(let i=0;i<this.YBmessageTable.length;i++){
+					if(this.YBmessageTable[i].code==code){
+						if(this.YBmessageTable[i].all){
+							let all=this.YBmessageTable[i].success+this.YBmessageTable[i].error;
+							if(all==this.YBmessageTable[i].all){//判断该组是否发送完成
+								this.YBmessageNum++;
+								this.ybMessageStatus();
+								return
+							}
+						}
+						break
+					}
+				}
+                service.post("/smsUserinfo/getMsgState",{
+                    group_id: code
+                }).then((res) => {
+                    if(res.data.state==200){
+                        let dataArray = res.data.records
+                        let successNum = 0
+                        let errorNum = 0
+                        dataArray.forEach((item)=>{
+                            if(item.report_status=="CM:0000"){//发送成功
+                                successNum++
+                            }else if(item.report_status==-1){//发送中
+                            
+                            }else{//发送失败
+                                errorNum++
+                            }
+                        })
+                        for(let j=0; j<this.YBmessageTable.length; j++){
+                            if(this.YBmessageTable[j].code == code){
+                                this.YBmessageTable[j].all = dataArray.length;
+                                this.YBmessageTable[j].success = successNum;
+                                this.YBmessageTable[j].error = errorNum;
+                                break
+                            }
+                        }
+                        this.YBmessageNum++
+                        this.ybMessageStatus()
+                    }               
+                })
+			}
+		},
+        // 循环判断短信状态
+		switchMessageStatus(){
+			if(!this.dialogVisible){
+				return
+			}
+            service.post("/smsUserinfo/getMsgState",{
+                group_id: this.messageObj.code
+            }).then((res) => {
+                if(res.data.state==200){
+                    let dataArray = res.data.records
+                    let flog = false
+                    let successNum = 0
+                    let errorNum = 0
+
+                    dataArray.forEach((item)=>{
+                        if(item.report_status == "CM:0000"){
+                            item.status = "成功"
+                            item.msg = ""
+                            successNum++;
+                        }else if(item.report_status == -1){
+                            item.status = this.sendHtml
+                            item.msg = ""
+                            flog = true
+                        }else{
+                            item.status = "失败"
+                            item.msg = item.report_msg
+                            errorNum++
+                        }
+                    })
+                    this.messageObj.table = dataArray
+                    this.messageObj.all = dataArray.length
+                    this.messageObj.success = successNum
+                    this.messageObj.error = errorNum
+                    if(flog){
+                        setTimeout(()=>{
+                            this.switchMessageStatus()
+                        },5000)							
+                    }else{
+                        this.messageObj.loading = false
+                        if(dataArray.length != successNum){
+                            this.messageObj.btnShow = true
+                        }else{
+                            this.messageObj.btnShow = false
+                        }
+                    }
+                }else{
+                    this.messageObj.loading = false
+					this.$message.error(`发送异常！`)
+                }              
+            })
+		},
+        getMessageData(data){//获取短信记录
+            this.tableDataRecord = []
+            service.post("/smsSendGroup/list",{
+                type: 1,
+                functionType: "town",
+                dataId: data.id
+            }).then((res) => {
+                if(res.data.state==200){
+                    let dataObj = {}
+                    res.data.records.forEach(element => {
+                        if(!dataObj[element.saveTime]){
+                           dataObj[element.saveTime] = []
+                        }
+                        dataObj[element.saveTime].push(element) 
+                    })
+                    for(let i in dataObj){
+                        let obj = {
+                            content: dataObj[i][0]["content"],
+                            saveTime: dataObj[i][0]["saveTime"],
+                            sendCode: dataObj[i][0]["sendCode"],
+                            data: dataObj[i]
+                        }
+                        let names = []
+                        dataObj[i].forEach(item=>{                            
+                            names.push(item.userRegion.name)                           
+                        })
+                        obj.name = names.join(" ")
+                        this.tableDataRecord.push(obj)
+                    }
+                    this.dialogVisibleRecord = true
+                }               
+            })
+        },
+        handleSeachRecord(data){//查询短信发送详情
+            this.YBmessageCode = []
+			this.YBmessageNum = 0
+
+            this.YBmessageTable = []
+            data.forEach((item)=>{   
+                let dataArray = item.detailedList
+                let successNum = 0
+                let errorNum = 0
+                dataArray.forEach((item)=>{
+                    if(item.reportStatus=="CM:0000"){//发送成功
+                        successNum++
+                    }else if(item.reportStatus==-1){//发送中
+                    
+                    }else{//发送失败
+                        errorNum++
+                    }
+                })
+                item.name = item.userRegion.name             
+                item.status = this.sendHtml
+                item.btnShow = true
+                item.content = item.content
+                item.all = dataArray.length
+                item.success = successNum
+                item.error = errorNum
+                item.code = item.sendCode
+                this.YBmessageCode.push(item.sendCode)
+                this.YBmessageTable.push(item)			
+			})    
+            let flog = false
+            for(let i=0;i<this.YBmessageTable.length;i++){               
+                let all = this.YBmessageTable[i].success+this.YBmessageTable[i].error
+                if(all!=this.YBmessageTable[i].all){
+                    flog = true
+                }else{
+                    if(this.YBmessageTable[i].success == this.YBmessageTable[i].all){
+                        this.YBmessageTable[i]["status"] = "<span style='color:#00DE65'>成功</span>"
+                    }else{
+                        this.YBmessageTable[i]["status"] = "<span style='color:#FF5454'>失败"+this.YBmessageTable[i].error+"</span>"
+                    }						
+                }                				
+            }
+            this.messageTableKey++
+            if(flog){
+                this.YBmessageNum = 0
+                setTimeout(()=>{
+                    this.ybMessageStatus()
+                },5000)	
+            }else{
+                this.YBmessageLoading = false
+            }
+            this.recordBtn = true
+            this.ybDialogVisible = true
+        },
+        getDateStr(str){//转换时间格式
+            return DateGrid(new Date(str),"yyyy-MM-dd HH:mm:ss")
+        }
+    },
+};
+</script>
+
+<style lang="less" scoped>
+.content {
+    height: 100%;
+    font-size: 14px;
+    padding: 16px;
+    display: flex;
+    .contentLeft {
+        height: 100%;
+        flex: 1;
+        .header {
+            padding-bottom: 16px;
+        }
+    }
+    .contentRight {
+        height: 100%;        
+        width: 600px;
+        padding-left: 16px;
+        .header{
+            h3{
+                margin-top: 0;
+            }  
+        }
+        .tableDiv{
+            height: calc(100% - 40px);
+            overflow: auto;
+        }
+    }
+    & .box_card {
+        height: 100%;
+    }    
+    .textareaClass {
+        height: calc(100% - 52px);
+        /deep/ textarea {
+            resize: none;
+            font-size: 18px;
+            height: 100%;
+            height: 100% !important;
+        }
+    }
+     .btnText{
+        text-decoration: underline;
+    }
+}
+</style>

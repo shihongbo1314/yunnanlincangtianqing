@@ -1,0 +1,54 @@
+<template>
+    <div>
+        <el-table
+            :data="tableData"
+            border
+            stripe
+            style="width: 100%"
+            class="commonTable"
+            >
+            <el-table-column
+				prop="time"
+				label="时间">
+			</el-table-column>
+        </el-table>
+    </div>
+</template>
+
+<script>
+import service from "@/api/request"
+export default {
+    name: "TxtRecord",//文本记录
+    props: ["type"],
+    data(){
+        return {
+            tableData: [],
+            current: 1,
+            size: 1,
+            total: 0,
+        }
+    },
+    created(){
+        this.getData()
+    },
+    methods:{
+        getData(){
+            let user = JSON.parse(localStorage.getItem("lcqxfzjz"))
+            service.post("/productWeatherWeek/page",{
+                current: this.current,
+                size: this.size,
+                roleId: user.roleInfo.id,
+                type: "shikuang"
+            }).then((res) => {
+                if(res.data.state==200){
+                    this.tableData = res.data.records
+                }               
+            })
+        }
+    }
+}
+</script>
+
+<style>
+
+</style>

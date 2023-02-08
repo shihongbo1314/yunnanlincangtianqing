@@ -1,0 +1,215 @@
+<template>
+    <div class="content">
+        <div class="content_left">
+            <el-card class="box_card">
+                <div class="top">
+                    <el-row>
+                        <el-col :span="20">
+                        数据时间 <el-date-picker
+                            v-model="dateRange"
+                            type="daterange"
+                            start-placeholder="开始日期"
+                            end-placeholder="结束日期"
+                            :picker-options="pickerOptions">
+                            </el-date-picker>
+                            &nbsp;&nbsp;
+                        气象站 <el-select v-model="value" placeholder="请选择" filterable style="width: 150px">
+                                <el-option
+                                v-for="item in options"
+                                :key="item.value"
+                                :label="item.label+' ('+item.value+')'"
+                                :value="item.value">
+                                </el-option>
+                            </el-select>
+                            <el-button class="btn" type="primary" size="medium">查询</el-button>
+                        </el-col>
+                        <el-col :span="4" style="text-align:right">
+                            <el-button size="medium">导出</el-button>
+                        </el-col>
+                    </el-row>     
+                </div>     
+                <el-table
+                    :data="tableData"
+                    stripe
+                    border
+                    :header-cell-style="{fontSize: '14px'}"
+                    :cell-style="{fontSize: '14px'}"
+                    style="width: 100%">
+                    <el-table-column
+                    prop="sid"
+                    label="风向方位"
+                    align="center">
+                    </el-table-column>
+                    <el-table-column
+                    prop="sName"
+                    label="总计次数"
+                    align="center">
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain1"
+                    align="center">
+                    <template slot="header">
+                        <div>0≤v&lt;1.5</div>
+                        <div>(次数)</div>
+                    </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain2"
+                    align="center">
+                    <template slot="header">
+                        <div>1.54≤v&lt;3.09</div>
+                        <div>(次数)</div>
+                    </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain3"
+                    align="center">
+                    <template slot="header">
+                        <div>3.09≤v&lt;5.14</div>
+                        <div>(次数)</div>
+                    </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain4"
+                    align="center">
+                    <template slot="header">
+                        <div>5.14≤v&lt;8.23</div>
+                        <div>(次数)</div>
+                    </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain5"
+                    align="center">
+                    <template slot="header">
+                        <div>8.23≤v&lt;10.8</div>
+                        <div>(次数)</div>
+                    </template>
+                    </el-table-column>
+                    <el-table-column
+                    prop="rain6"
+                    align="center">
+                    <template slot="header">
+                        <div>10.8≤v&lt;15.5</div>
+                        <div>(次数)</div>
+                    </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+        </div>
+        <div class="content_right">
+            <el-card class="box_card">
+                <div class="downloadBtn"><el-button size="medium" type="warning" @click="handleDownImage">下载</el-button></div>
+                <div class="downloadImg">
+                    <div id="imageDiv">
+                        <img src="../assets/img/windRose.png">
+                    </div>
+                </div>                
+            </el-card>
+        </div> 
+    </div>
+</template>
+
+<script>
+export default {
+    data(){
+        return{
+            dateRange: [],
+            options: [{
+                value: '56839',
+                label: '镇康'
+            }, {
+                value: '56846',
+                label: '凤庆'
+            }, {
+                value: '56849',
+                label: '永德'
+            }, {
+                value: '56854',
+                label: '云县'
+            }, {
+                value: '56944',
+                label: '沧源'
+            }, {
+                value: '56946',
+                label: '耿马'
+            },{
+                value: '56950',
+                label: '双江'
+            },{
+                value: '56951',
+                label: '临沧'
+            }],
+            value: '56839',
+            tableData: [
+                {sid: "东", sName: 23, rain1: 14, rain2: 5, rain3: 4,rain4: 4,rain5: 4,rain6: 4},
+                {sid: "东东南", sName: 56, rain1: 24, rain2: 5, rain3: 4,rain4: 4,rain5: 2,rain6: 0},
+                {sid: "东南", sName: 89, rain1: 14, rain2: 15, rain3: 4,rain4: 34,rain5: 4,rain6: 5},
+                {sid: "南东南", sName: 60, rain1: 24, rain2: 6, rain3: 5,rain4: 4,rain5: 1,rain6: 4},
+                {sid: "南", sName: 73, rain1: 14, rain2: 7, rain3: 54,rain4: 4,rain5: 0,rain6: 0},
+                {sid: "南西南", sName: 85, rain1: 14, rain2: 95, rain3: 4,rain4: 14,rain5: 20,rain6: 0},
+                {sid: "西南", sName: 47, rain1: 24, rain2: 45, rain3: 9,rain4: 52,rain5: 34,rain6: 4},
+                {sid: "西西南", sName: 68, rain1: 56, rain2: 45, rain3: 44,rain4: 4,rain5: 4,rain6: 4},
+                {sid: "西", sName: 97, rain1: 16, rain2: 5, rain3: 24,rain4: 34,rain5: 44,rain6: 4},
+                {sid: "西西北", sName: 38, rain1: 6, rain2: 75, rain3: 44,rain4: 54,rain5: 44,rain6: 8},
+                {sid: "西北", sName: 21, rain1: 6, rain2: 75, rain3: 44,rain4: 54,rain5: 34,rain6: 7},
+                {sid: "北西北", sName: 16, rain1: 6, rain2: 75, rain3: 54,rain4: 54,rain5: 34,rain6: 4},
+                {sid: "北", sName: 74, rain1: 6, rain2: 45, rain3: 44,rain4: 17,rain5: 18,rain6: 1},
+                {sid: "北东北", sName: 70, rain1: 16, rain2: 45, rain3: 54,rain4: 34,rain5: 34,rain6: 2},
+                {sid: "东北", sName: 94, rain1: 16, rain2: 45, rain3:54,rain4: 16,rain5: 34,rain6: 3},
+                {sid: "东东北", sName: 2, rain1: 16, rain2: 45, rain3:54,rain4: 13,rain5: 34,rain6: 6}
+            ],
+            pickerOptions: {// 限制不能选择今天之后的日期			    
+				disabledDate: (time) => {
+					return time.getTime() > Date.now()
+				}
+			}    
+        }
+    },
+    created(){
+        let startDate = new Date(new Date().getTime()-1000*60*60*24*10)
+        let endDate = new Date()
+        this.dateRange=[startDate,endDate]
+    }
+}
+</script>
+
+<style lang="less" scoped>
+.content{
+    font-size: 14px;
+    height: 100%;
+    padding: 16px;
+    display: flex;
+    background: #f5f6f7;
+    & .box_card{
+        height: 100%;
+    }
+    .content_left{
+        height: 100%;
+        width: 60%;
+        .top{
+            padding-bottom: 20px;
+            .btn{
+                margin-left: 10px;
+            }
+        }
+    }
+    .content_right{
+        flex: 1;
+        padding-left: 16px;
+        .box_card{
+            position: relative;
+            .downloadBtn{
+                position: absolute;
+                right: 20px;
+                top: 20px;
+            }
+            .downloadImg{
+                position: absolute;
+                top: 45%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+            }
+        }
+    }
+}
+</style>

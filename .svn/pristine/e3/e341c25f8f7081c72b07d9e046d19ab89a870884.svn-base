@@ -1,0 +1,291 @@
+<template>
+    <el-card class="box_card">
+        <div class="header">
+            <el-row>
+                <el-col :span="12">  
+                    姓名：<el-input v-model="name" style="display:inline-block;width: 200px;margin-right: 10px" placeholder="请输入姓名"></el-input>                         
+                    <el-button type="primary" size="medium" @click="getData">查询</el-button>
+                    <el-button type="success" size="medium" @click="handleAdd">添加</el-button>
+                </el-col>
+                <el-col :span="12" style="text-align:right">
+                    <el-button size="medium">导入</el-button>
+                    <el-button size="medium">导出</el-button>
+                </el-col>
+            </el-row>  
+        </div>
+        <el-table
+            :data="tableData"
+            stripe
+            border
+            :header-cell-style="{fontSize: '14px'}"
+            :cell-style="{fontSize: '14px'}"
+            style="width: 100%">
+            <el-table-column label="序号" align="center" width="70">
+                <template slot-scope="scope"><span>{{scope.$index+(currentPage - 1) * pageSize + 1}} </span></template>
+            </el-table-column>
+            <el-table-column
+            prop="name"
+            label="姓名"
+            width="180">
+            </el-table-column>
+            <el-table-column
+            prop="phone"
+            label="手机号">
+            </el-table-column>
+            <el-table-column
+            prop="mail"
+            label="邮箱">
+            </el-table-column>
+            <el-table-column
+            prop="state"
+            label="接收状态" width="100">
+             <template slot-scope="scope">
+                <el-switch
+                    v-model="scope.row.state"
+                    active-color="#13ce66"
+                    inactive-color="#ff4949">
+                </el-switch> 
+            </template>
+            </el-table-column>
+            <el-table-column
+            prop="group"
+            label="所属群组">
+            </el-table-column>
+            <el-table-column
+            prop="date"
+            label="添加时间"
+            width="180">
+            </el-table-column>
+            <el-table-column label="操作" width="120">
+                <template slot-scope="scope">
+                    <el-button
+                    size="mini"
+                    type="text"
+                    icon="el-icon-edit"
+                    class="warning"
+                    @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+                    <el-button
+                    size="mini"
+                    type="text"
+                    icon="el-icon-delete"
+                    class="red"
+                    @click="handleDelete(scope.$index, tableData)">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <el-pagination
+            style="margin-top: 20px;text-align:right"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :current-page="currentPage"
+            :page-sizes="[10, 20, 30, 40]"
+            :page-size="10"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total">
+        </el-pagination>
+
+        <!-- 添加/修改对话框 -->
+        <el-dialog
+            :title="dialogStatus"
+            :visible.sync="dialogVisible"
+            width="30%">
+            <el-form ref="form" :rules="rules" :model="form" label-width="110px">
+                <el-form-item label="姓名" prop="name">
+                    <el-input v-model="form.name" placeholder="请输入姓名"></el-input>
+                </el-form-item>
+                <el-form-item label="手机号" prop="phone">
+                    <el-input type="tel" v-model="form.phone" placeholder="请输入手机号"></el-input>
+                </el-form-item>
+                <el-form-item label="邮箱" prop="mail">
+                    <el-input type="mail" v-model="form.mail" placeholder="请输入邮箱"></el-input>
+                </el-form-item>
+                <el-form-item label="接收状态" prop="state">
+                    <el-switch
+                        v-model="form.state"
+                        active-color="#13ce66"
+                        inactive-color="#ff4949">
+                    </el-switch> 
+                </el-form-item>
+                <el-form-item label="所属群组" prop="group">
+                    <el-input v-model="form.group" :disabled="true"></el-input>
+                </el-form-item> 
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="handleFun">确 定</el-button>
+            </span>
+        </el-dialog>
+    </el-card>
+</template>
+
+<script>
+import {DateGrid} from '../../utils'
+export default {
+    name: "PropleGroup",
+    data(){
+        return{
+            name:"",
+            currentPage: 1,
+            pageSize: 10,
+            tableData:[],
+            allData: [{
+                date: '2022-06-02',
+                name: '张三',
+                phone: '17710257897',
+                mail: '886404053@qq.com',
+                state: true,
+                group: '县区局->临翔区'
+            }, {
+                date: '2022-05-04',
+                name: '李四',
+                phone: '15712276824',
+                mail: '687403057@qq.com',
+                state: true,
+                group: '县区局->凤庆县'
+            }, {
+                date: '2022-04-30',
+                name: '王五',
+                phone: '15390237220',
+                mail: '682408056@qq.com',
+                state: false,
+                group: '县区局->云县'
+            }, {
+                date: '2022-04-23',
+                name: '赵六',
+                phone: '18600271382',
+                mail: '120407853@qq.com',
+                state: true,
+                group: '县区局->双江县'
+            },{
+                date: '2022-04-13',
+                name: '王五五',
+                phone: '15390237220',
+                mail: '322408076@qq.com',
+                state: false,
+                group: '水电站->南片河流域'
+            }, {
+                date: '2022-03-23',
+                name: '赵六六',
+                phone: '18600271382',
+                mail: '160487874@qq.com',
+                state: true,
+                group: '水电站->南袜河流域'
+            }],
+            dialogStatus: "添加",
+            dialogVisible: false,
+            form: {
+                name: "",
+                phone: "",
+                mail: "",
+                state: true,
+                group: ""
+            },
+            rules: {
+                name: [
+                    { required: true, message: '请输入姓名', trigger: 'blur' }
+                ],
+                phone: [
+                    {required: true,  message: '请输入手机号', trigger: 'blur' }
+                ],
+                mail: [
+                    {required: true,  message: '请输入邮箱', trigger: 'blur' }
+                ]
+            },
+            groupName:""
+        }
+    },
+    computed:{
+        total(){
+            return this.tableData.length
+        }
+    },
+    mounted(){
+        this.$bus.$on('setGroupData',this.setGroupData)
+        this.$bus.$on('deleteTableData',this.deleteTableData)
+    },
+    created(){
+        this.getData()
+    },
+    methods: {
+      handleSizeChange(val) {
+        console.log(`每页 ${val} 条`);
+      },
+      handleCurrentChange(val) {
+        console.log(`当前页: ${val}`);
+      },
+      getData(){//查询数据
+        this.tableData = []
+        this.allData.forEach(item=>{
+            if(item.name.includes(this.name)&&item.group.includes(this.groupName)){
+                this.tableData.push(item)
+            }
+        })
+      },
+      setGroupData(name){//群组数据
+        this.groupName = name
+        this.getData()
+      },
+    deleteTableData(name){//删除群组时将群组的数据也一起删除
+        this.allData.forEach((item,index)=>{
+            if(item.group.includes(name)){
+                this.allData.splice(index, 1)
+            }
+        })
+        this.groupName = ""
+        this.getData()
+    },
+    handleFun(){
+        if(this.dialogStatus == "添加"){
+            let peopleObj = this.form
+            peopleObj.date = DateGrid(new Date(),"yyyy-MM-dd")
+            this.allData.unshift(peopleObj)
+            this.getData()
+        }
+        this.dialogVisible = false
+    },
+    handleAdd(){
+        if(this.groupName==""){
+            this.$message.error("请在左侧群组中选中要添加人员的群组")
+            return
+        }
+        this.form = {
+            name: "",
+            phone: "",
+            mail: "",
+            state: true,
+            group: this.groupName
+        },
+        this.dialogVisible = true
+    },
+    handleEdit(_, row){//修改
+        this.form = row
+        this.dialogStatus = "修改"
+        this.dialogVisible = true
+    },
+    handleDelete(index, rows){//删除
+        this.$confirm(`确定要删除吗？`, '提示', {
+            type: 'warning'
+        }).then(() => {
+            rows.splice(index, 1)
+            this.$message.success("删除成功")
+        })   
+      }
+    },
+}
+</script>
+
+<style lang="less" scoped>
+.box_card{
+    height: 100%;
+    font-size: 14px;
+    .header{
+        padding-bottom: 20px;
+    }
+    .red {
+        color: #F56C6C;
+    }
+    .warning{
+        color: #E6A23C;
+    }
+}
+</style>

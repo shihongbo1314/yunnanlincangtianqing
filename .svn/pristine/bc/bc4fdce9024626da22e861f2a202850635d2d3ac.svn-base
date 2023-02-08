@@ -1,0 +1,1700 @@
+<template>
+    <!-- 地图数据1 -->
+    <div class="mapLayerConfig">
+        <div class="rightConfigTitle">
+            <el-tabs
+                v-model="activeName"
+                @tab-click='tabClick'
+            >
+                <el-tab-pane
+                    label="站点实况"
+                    name="站点实况"
+                >
+                    <div
+                        class="rightConfigInfo"
+                        style="padding-bottom:0;"
+                    >
+                        <div>
+                            <el-checkbox
+                                v-for="(item,i) in mapLayer"
+                                :key="i"
+                                v-model="item.checked"
+                                @change="stationShowStyleChange_self()"
+                            >{{item.name}}</el-checkbox>
+                        </div>
+                    </div>
+                    <!-- 站点实况快速查询 -->
+                    <div class="stationLiveQuickSearch">
+                        <div class="searchTitle">
+                            <p>快速查询</p>
+                        </div>
+                        <el-form
+                            ref="form"
+                            :model="stationLiveQuickSelect"
+                            label-width="50px"
+                            label-position="left"
+                        >
+                            <el-form-item label="时间">
+                                <el-date-picker
+                                    class="timeInput"
+                                    @change="stationLiveQuickTimeChange(0)"
+                                    v-model="stationLiveQuickSelect.time"
+                                    type="datetime"
+                                    format="yyyy-MM-dd HH:mm"
+                                    prefix-icon="el-icon-date"
+                                    placeholder="选择日期时间"
+                                >
+                                </el-date-picker>
+                                <el-button
+                                    @click="stationLiveQuickTimeChange(-5)"
+                                    class="timeLeft"
+                                    icon="el-icon-caret-left"
+                                ></el-button>
+                                <el-button
+                                    @click="stationLiveQuickTimeChange(5)"
+                                    class="timeRight"
+                                    icon="el-icon-caret-right"
+                                ></el-button>
+                                <el-button
+                                    @click="NewTime"
+                                    class="timeNew"
+                                >最新</el-button>
+                            </el-form-item>
+                            <el-form-item
+                                :label="item1.name"
+                                v-for="(item1, index1) in stationLiveQuickSelect.elementTypes"
+                                :key="index1"
+                            >
+                                <el-button
+                                    :type="item1.val == i ? 'primary' : ''"
+                                    class="elementBtn"
+                                    v-for="(item,i) in stationLiveQuickSelect.element[item1.name]"
+                                    :key="i"
+                                    @click="item1.val = i; stationShowStyleChange_self(item1)"
+                                >{{item}}</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <!-- 阈值设置 -->
+                    <div class="stationLiveQuickSearch">
+                        <div class="searchTitle">
+                            <p>阈值设置</p>
+                        </div>
+                        <el-form
+                            :inline="true"
+                            ref="form"
+                            :model="zdskYzsz"
+                            label-width="100px"
+                            label-position="right"
+                        >
+                            <el-form-item
+                                :label="item1.type | namefilter"
+                                v-for="item1 in zdskYzszone"
+                                :key="item1.id"
+                            >
+                                <el-input
+                                    @blur="onInputBlur(item1.id,item1.value)"
+                                    v-model="item1.value"
+                                    placeholder="请输入"
+                                    style="width: 70px"
+                                    @keyup.native="clearNoNum"
+                                ></el-input>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <!-- 统计查询 -->
+                    <div
+                        class="stationLiveQuickSearch"
+                        v-if="false"
+                    >
+                        <div class="searchTitle">
+                            <p>统计查询</p>
+                        </div>
+                        <el-form
+                            ref="form"
+                            :model="zdskYzsz"
+                            label-width="80px"
+                            label-position="left"
+                        >
+                            <el-radio
+                                style="width: 85px;"
+                                v-model="zdskTjcx.selectElement"
+                                :label="item.name"
+                                v-for="(item, index) in zdskTjcx.elements"
+                                :key="index"
+                            >{{item.name}}</el-radio>
+                            <el-form-item label="开始时间">
+                                <el-date-picker
+                                    class="timeInput"
+                                    v-model="zdskTjcx.startTime"
+                                    type="datetime"
+                                    format="yyyy-MM-dd HH:00"
+                                    prefix-icon="el-icon-date"
+                                    placeholder="选择日期时间"
+                                >
+                                </el-date-picker>
+                            </el-form-item>
+                            <el-form-item label="结束时间">
+                                <el-date-picker
+                                    class="timeInput"
+                                    v-model="zdskTjcx.endTime"
+                                    type="datetime"
+                                    format="yyyy-MM-dd HH:00"
+                                    prefix-icon="el-icon-date"
+                                    placeholder="选择日期时间"
+                                >
+                                </el-date-picker>
+                            </el-form-item>
+                            <el-button
+                                style="width: 275px;"
+                                type="primary"
+                            >查询</el-button>
+                        </el-form>
+                    </div>
+                </el-tab-pane>
+                <el-tab-pane
+                    label="网格实况"
+                    name="网格实况"
+                >
+                    <div class="rightConfigInfo">
+                        <div>
+                            <el-checkbox
+                                @change='changeCheckboxSK'
+                                v-for="(item,i) in wgsk.showType"
+                                :key="i"
+                                v-model="item.checked"
+                            >{{item.name}}</el-checkbox>
+                        </div>
+                        <div class="timeSelectBox">
+                            <span>时间选择</span>
+                            <el-date-picker
+                                @change="initWgybInterVal_SK"
+                                style="width: 150px;"
+                                v-model="wgsk.time"
+                                type="date"
+                                format="yyyy-MM-dd"
+                                value-format="yyyyMMdd"
+                                prefix-icon="el-icon-date"
+                                placeholder="选择日期时间"
+                            >
+                            </el-date-picker>
+                            <el-select
+                                v-model="wgsk.hour"
+                                placeholder="请选择"
+                                style="width:70px;"
+                                @change="changeHour"
+                            >
+                                <el-option
+                                    v-for="item in 24"
+                                    :key="item"
+                                    :label="item>9?item:'0'+item"
+                                    :value="item>9?item:'0'+item"
+                                >
+                                </el-option>
+                            </el-select>
+                            <span>时</span>
+                            <el-button class="timeNew" @click="NewTimewgsk">最新</el-button>
+                        </div>
+                    </div>
+                    <!-- 快速查询 -->
+                    <div class="stationLiveQuickSearch">
+                        <div class="searchTitle">
+                            <p>快速查询</p>
+                        </div>
+                        <el-form
+                            ref="form"
+                            label-width="80px"
+                            label-position="left"
+                        >
+                            <el-button
+                                :type="item.val == i ? 'primary' : ''"
+                                class="elementBtn elementBtnBig"
+                                v-for="(item,i) in wgsk.element"
+                                :key="i"
+                                @click="item.val = i;stationShowStyleChange_Sk(item)"
+                            >{{item.name}}</el-button>
+                            <el-switch
+                                v-model="wgsk.isShow"
+                                active-color="#13ce66"
+                                inactive-color="#aaa"
+                                @change="switchWind"
+                            />
+                            <span style="padding-left: 10px;">风场</span>
+                            <div
+                                class="fs"
+                                v-if="wgsk.isShow"
+                            >
+                                <div
+                                    v-for="(item,i) in wgsk.params"
+                                    :key="i"
+                                    style="margin-top:10px;"
+                                >
+                                    <span> {{item.type}} </span>
+                                    <el-select
+                                        style="width:80px"
+                                        v-model="wgsk.paramsObj[item.value].selectValue"
+                                        placeholder="请选择"
+                                    >
+                                        <el-option
+                                            v-for="(citem, index) in item.data"
+                                            :key="index"
+                                            :label="citem.name"
+                                            :value="citem.value"
+                                        >
+                                        </el-option>
+                                    </el-select>
+                                </div>
+
+                                <div
+                                    class="botton"
+                                    style="display: flex"
+                                >
+                                    <button @click.stop="resetWind">重置</button>
+                                    <button @click.stop="reveiseFs">修改</button>
+                                </div>
+                            </div>
+                            <el-row
+                                type="flex"
+                                align="middle"
+                                style="margin: 8px 0;"
+                            >
+                                <div
+                                    class="label"
+                                    style="font-size: 13px;margin-right: 5px;"
+                                >经纬度查询</div>
+                                <el-input
+                                    v-model="wgsk.startLng"
+                                    size="mini"
+                                    style="width: 115px"
+                                    type="number"
+                                    placeholder="经度"
+                                    step="0.01"
+                                />
+                                <div>-</div>
+                                <el-input
+                                    v-model="wgsk.endLng"
+                                    size="mini"
+                                    style="width: 120px"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="纬度"
+                                />
+                                <el-button
+                                    class="timeNew"
+                                    style="font-size: 13px;"
+                                    @click="SeletLonlng"
+                                >查询</el-button>
+                            </el-row>
+                        </el-form>
+                    </div>
+                </el-tab-pane>
+                <el-tab-pane
+                    label="网格预报"
+                    name="网格预报"
+                >
+                    <div class="rightConfigInfo">
+                        <div>
+                            <el-checkbox
+                                @change='changeCheckboxYB'
+                                v-for="(item,i) in wgyb.showType"
+                                :key="i"
+                                v-model="item.checked"
+                            >{{item.name}}</el-checkbox>
+                        </div>
+                        <div class="timeSelectBox">
+                            <span>时间选择</span>
+                            <el-date-picker
+                                @change="initWgybInterVal"
+                                style="width: 150px;"
+                                v-model="wgyb.time"
+                                type="date"
+                                format="yyyy-MM-dd"
+                                prefix-icon="el-icon-date"
+                                placeholder="选择日期时间"
+                            >
+                            </el-date-picker>
+                            <el-select
+                                v-model="wgyb.hour"
+                                placeholder="请选择"
+                                style="width:70px;"
+                                @change="changeHourYb"
+                            >
+                                <el-option
+                                    v-for="it in wgyb.hourList"
+                                    :label="it"
+                                    :value="it"
+                                ></el-option>
+                            </el-select>
+                            <span>时</span>
+                        </div>
+                        <!-- <div class="yubaojiange">
+                            <span>预报间隔</span>
+                            <ul>
+                                <li
+                                    :class="wgyb.timeInterval == item?'active':''"
+                                    @click="wgyb.timeInterval = item; initWgybInterVal();"
+                                    v-for="(item, index) in wgyb.timeInter"
+                                    :key="index"
+                                >{{item}}H</li>
+                            </ul>
+                        </div> -->
+                        <div class="wgybDayHour">
+                            <!-- 日期时间选择 -->
+                            <span
+                                class="leftTime"
+                                @click="wgybIntervalPage(-1)"
+                            >
+                                <i class="el-icon-caret-left"></i>
+                                上翻
+                            </span>
+                            <ul class="times">
+                                <li
+                                    v-for="(item, index) in wgyb.times[wgyb.page]"
+                                    :key="index"
+                                    :class="wgyb.pageIndex == index?'active':''"
+                                    @click="wgyb.pageIndex = index ,timeBtnClick()"
+                                >
+                                    <span class="timeDay">{{item.getDate()}}日</span>
+                                    <span class="timeHour">{{item.getHours() > 9 ? item.getHours() : "0" + item.getHours()}}</span>
+                                </li>
+                            </ul>
+                            <span
+                                class="rightTime"
+                                @click="wgybIntervalPage(1)"
+                            >
+                                <i class="el-icon-caret-right"></i>
+                                下翻
+                            </span>
+                        </div>
+                    </div>
+                    <!-- 快速查询 -->
+                    <div class="stationLiveQuickSearch">
+                        <div class="searchTitle">
+                            <p>快速查询</p>
+                        </div>
+                        <el-form
+                            ref="form"
+                            label-width="80px"
+                            label-position="left"
+                        >
+                            <el-form-item
+                                :label="item1.name"
+                                v-for="(item1, index1) in wgyb.elementTypes"
+                                :key="index1"
+                            >
+                                <el-button
+                                    :type="item1.val == i ? 'primary' : ''"
+                                    class="elementBtn"
+                                    v-for="(item,i) in wgyb.element[item1.name]"
+                                    :key="i"
+                                    @click="item1.val = i; stationShowStyleChange_my(item1,item)"
+                                >{{item.name}}</el-button>
+                            </el-form-item>
+                        </el-form>
+                        <el-row
+                            type="flex"
+                            align="middle"
+                            style="margin: 8px 0;padding-left:42px;"
+                        >
+                            <div
+                                class="label"
+                                style="font-size: 13px;margin-right: 5px;"
+                            >经纬度查询</div>
+                            <el-input
+                                v-model="wgyb.startLng"
+                                size="mini"
+                                style="width: 115px"
+                                type="number"
+                                placeholder="经度"
+                                step="0.01"
+                            />
+                            <div>-</div>
+                            <el-input
+                                v-model="wgyb.endLng"
+                                size="mini"
+                                style="width: 120px"
+                                type="number"
+                                step="0.01"
+                                placeholder="纬度"
+                            />
+                            <el-button
+                                class="timeNew"
+                                style="font-size: 13px;"
+                                @click="SeletLonlngYB"
+                            >查询</el-button>
+                        </el-row>
+                    </div>
+                </el-tab-pane>
+                <el-tab-pane
+                    label="预警信号"
+                    name="预警信号"
+                >
+                    <div class="rightConfigInfo">
+                        <div class="timeSelectBox">
+                            <span>时间选择</span>
+                            <!--   <el-date-picker
+                                @change="initWgybInterVal"
+                                style="width: 150px;"
+                                v-model="wgyb.time"
+                                type="date"
+                                format="yyyy-MM-dd"
+                                prefix-icon="el-icon-date"
+                                placeholder="选择日期时间"
+                            >
+                            </el-date-picker> -->
+                            <el-date-picker
+                                @change="inityjxhInterVal"
+                                v-model="yjxh.time"
+                                type="daterange"
+                                style="width: 250px;"
+                                range-separator="至"
+                                format="yyyy-MM-dd"
+                                start-placeholder="开始日期"
+                                end-placeholder="结束日期"
+                            >
+                            </el-date-picker>
+                            <!--  <el-button class="timeNew">最新</el-button> -->
+                        </div>
+                        <div class="yujingliebiao">
+
+                        </div>
+                    </div>
+                    <!-- 预警列表 -->
+                    <div class="stationLiveQuickSearch">
+                        <div class="searchTitle">
+                            <p>预警列表</p>
+                        </div>
+                        <el-form
+                            ref="form"
+                            label-width="80px"
+                            label-position="left"
+                        >
+                            <el-collapse v-model="activeNames">
+                                <el-collapse-item
+                                    title="预警列表"
+                                    name="1"
+                                >
+
+                                    <el-table
+                                        v-loading="loading"
+                                        :header-cell-style="{ background:'rgb(242,248,255)',height:'35px',color:'#2d5a9d'}"
+                                        :data="yjxh.tableData"
+                                        style="width: 100%"
+                                    >
+                                        <el-table-column
+                                            prop="sender"
+                                            label="单位"
+                                            align="center"
+                                        >
+                                        </el-table-column>
+                                        <el-table-column
+                                            prop="signImg"
+                                            label="预警类型"
+                                            align="center"
+                                        >
+                                        </el-table-column>
+                                        <el-table-column
+                                            label="图标"
+                                            align="center"
+                                        >
+                                            <template slot-scope="scope">
+                                                <img
+                                                    :src="scope.row.signImg.split('预警')[0] | suitableImg"
+                                                    style="width: 32px;height: 32px;"
+                                                >
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column
+                                            prop="sendTime"
+                                            label="时间"
+                                            align="center"
+                                        >
+                                        </el-table-column>
+                                    </el-table>
+                                </el-collapse-item>
+                            </el-collapse>
+                        </el-form>
+                    </div>
+                    <!-- 预警统计 -->
+                    <div class="stationLiveQuickSearch">
+                        <div class="searchTitle">
+                            <p>预警统计</p>
+                        </div>
+                        <el-form
+                            ref="form"
+                            label-width="80px"
+                            label-position="left"
+                        >
+                            <div style="display:flex;flex-direction: row;justify-content: space-evenly;">
+                                <div
+                                    v-for="(item,index) in yjxh.yujingjson"
+                                    :key="index"
+                                >
+                                    <el-badge
+                                        :value="item.num"
+                                        class="item"
+                                    >
+                                        <img
+                                            :src="item.name | suitableImg"
+                                            style="width: 32px;height: 32px;"
+                                        >
+                                    </el-badge>
+                                </div>
+                            </div>
+
+                        </el-form>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+        </div>
+    </div>
+</template>
+
+<script>
+import {
+    getWarning,
+    getMaxTime,
+    getMaxTimeSK,
+    gridElement,
+    getQbTimeGroup,
+} from "@/api/maplayer.js";
+import { parseTime, DateGrid } from "@/api/date";
+import service from "@/api/request";
+export default {
+    filters: {
+        namefilter(val) {
+            switch (val) {
+                case "tem":
+                    return "温度（℃）";
+                    break;
+                case "wind":
+                    return "风速（m/s）";
+                    break;
+                case "rain":
+                    return "降水（mm）";
+                    break;
+                case "vis":
+                    return "能见度（km）";
+                    break;
+                default:
+                    break;
+            }
+        },
+        suitableImg(val) {
+            if (
+                val.indexOf("暴雪") >= 0 ||
+                val.indexOf("暴雨") >= 0 ||
+                val.indexOf("冰雹") >= 0 ||
+                val.indexOf("赤潮") >= 0 ||
+                val.indexOf("大风") >= 0 ||
+                val.indexOf("大雾") >= 0 ||
+                val.indexOf("道路结冰") >= 0 ||
+                val.indexOf("低温") >= 0 ||
+                val.indexOf("地质灾害") >= 0 ||
+                val.indexOf("风暴潮") >= 0 ||
+                val.indexOf("干旱") >= 0 ||
+                val.indexOf("高温") >= 0 ||
+                val.indexOf("海冰") >= 0 ||
+                val.indexOf("海水低温") >= 0 ||
+                val.indexOf("海浪") >= 0 ||
+                val.indexOf("海上大风") >= 0 ||
+                val.indexOf("海雾") >= 0 ||
+                val.indexOf("海啸") >= 0 ||
+                val.indexOf("寒潮") >= 0 ||
+                val.indexOf("雷电") >= 0 ||
+                val.indexOf("雷雨大风") >= 0 ||
+                val.indexOf("沙尘暴") >= 0 ||
+                val.indexOf("霜冻") >= 0 ||
+                val.indexOf("台风") >= 0 ||
+                val.indexOf("咸潮") >= 0 ||
+                val.indexOf("霾") >= 0
+            ) {
+                if (val.indexOf("事件") >= 0) {
+                    val = val.replace("事件", "");
+                }
+                return require("@/assets/img/yjImgStr/" + val + ".png");
+            } else {
+                return require("@/assets/img/yjImgStr/moren.jpg");
+            }
+        },
+    },
+    data() {
+        return {
+            activeName: "站点实况",
+            mapLayer: [
+                {
+                    name: "国家站",
+                    checked: true,
+                    key: "gjz",
+                },
+                {
+                    name: "区域站",
+                    checked: false,
+                    key: "qyz",
+                },
+                {
+                    name: "站名",
+                    checked: true,
+                    key: "name",
+                },
+                {
+                    name: "站号",
+                    checked: true,
+                    key: "site",
+                },
+                /*  {
+                    name: "等值线",
+                    checked: false,
+                    key: "valLine",
+                }, */
+                {
+                    name: "观测值",
+                    checked: true,
+                    key: "val",
+                },
+                {
+                    name: "色斑图",
+                    checked: true,
+                    key: "image",
+                },
+            ],
+            stationLiveQuickSelect: {
+                time: DateGrid(new Date(), "yyyy-MM-dd HH:00"),
+                elementTypes: [
+                    { name: "降水", key: "val_yl", val: 0 },
+                    { name: "温度", key: "val_wd", val: null },
+                    { name: "风", key: "val_wind", val: null },
+                    { name: "能见度", key: "val_njd", val: null },
+                    { name: "湿度", key: "val_RHU", val: null },
+                ],
+                element: {
+                    降水: ["近1H", "近3H", "近6H", "近24H"],
+                    温度: ["实时", "最高24H", "最低24H"],
+                    风: ["实时", "极大1H", "极大24H"],
+                    能见度: ["实时", "最低1H", "最低24H"],
+                    湿度: ["实时", "最高24H", "最低24H"],
+                },
+            },
+            zdskYzsz: {
+                // 站点实况  阈值设置
+                "降水（mm）": 2.5,
+                "温度（℃）": 24,
+                "风速（m/s）": 5.5,
+                "能见度（km）": 230,
+            },
+            zdskYzszone: [],
+            zdskTjcx: {
+                // 站点实况 统计查询
+                selectElement: "",
+                elements: [
+                    { name: "降水" },
+                    { name: "最高温度" },
+                    { name: "最低温度" },
+                    { name: "平均气温" },
+                    { name: "级大风" },
+                    { name: "流域雨量" },
+                    { name: "火点监测" },
+                    { name: "降雪量" },
+                    { name: "最大雪深" },
+                    { name: "短时降雨" },
+                    { name: "闪电" },
+                    { name: "冰雹" },
+                    { name: "大风" },
+                    { name: "最小能见度" },
+                ],
+                startTime: new Date(new Date().getTime() - 1000 * 60 * 60 * 24),
+                endTime: new Date(),
+            },
+            wgsk: {
+                // 网格实况
+                showType: [
+                    { name: "填色", checked: true },
+                    { name: "填值", checked: false },
+                ],
+                time: new Date(),
+                hour: new Date().getHours(),
+                element: [
+                    { name: "降水", key: "ER01", val: 0 },
+                    { name: "风", key: "WIND", val: null },
+                    { name: "温度", key: "TAIR", val: null },
+                    { name: "湿度", key: "QAIR", val: null },
+                ],
+                params: [
+                    {
+                        type: "宽度",
+                        value: "width",
+                        data: [
+                            { name: "细", value: 1 },
+                            { name: "中", value: 2 },
+                            { name: "粗", value: 3 },
+                        ],
+                    },
+                    {
+                        type: "速度",
+                        value: "speed",
+                        data: [
+                            { name: "快", value: 500 },
+                            { name: "中", value: 200 },
+                            { name: "慢", value: 10 },
+                        ],
+                    },
+                    {
+                        type: "长度",
+                        value: "length",
+                        data: [
+                            { name: "短", value: 0.009 },
+                            { name: "中", value: 0.08 },
+                            { name: "长", value: 0.1 },
+                        ],
+                    },
+                    {
+                        type: "颜色",
+                        value: "color",
+                        data: [
+                            { name: "红", value: "red" },
+                            { name: "绿", value: "green" },
+                            { name: "蓝", value: "blue" },
+                            { name: "黑", value: "black" },
+                            { name: "白", value: "white" },
+                        ],
+                    },
+                ],
+                paramsObj: {
+                    width: { selectValue: 1, initValue: 1 },
+                    speed: { selectValue: 200, initValue: 200 },
+                    length: { selectValue: 0.009, initValue: 0.009 },
+                    color: { selectValue: "black", initValue: "black" },
+                },
+                isShow: false,
+                startLng: null,
+                endLng: null,
+            },
+            wgyb: {
+                // 网格预报
+                showType: [
+                    { name: "填色", checked: true },
+                    { name: "填值", checked: false },
+                ],
+                time: "",
+                hour: 0,
+                timeInterval: 1,
+                inter: 1,
+                timeInter: [3, 6, 9, 12],
+                page: 0,
+                pageIndex: 0,
+                times: [[]],
+                elementTypes: [
+                    { name: "降水", key: "val_yl", val: 0 },
+                    { name: "温度", key: "val_wd", val: null },
+                    { name: "风", key: "val_wind", val: null },
+                    { name: "能见度", key: "val_njd", val: null },
+                    { name: "湿度", key: "val_sd", val: null },
+                ],
+                element: {
+                    降水: [],
+                    温度: [],
+                    风: [],
+                    能见度: [],
+                    湿度: [],
+                },
+                zxybtime: "",
+                hourList: [],
+                startLng: null,
+                endLng: null,
+            },
+            yjxh: {
+                time: "",
+                tableData: [],
+                yujingjson: [],
+                fanwei: ["全部", "市", "县"],
+                fanweiVal: "全部",
+                data: [],
+                count: [],
+            },
+            loading: false,
+            activeNames: ["1"],
+        };
+    },
+    props: {
+        stationLiveTime: {
+            // 最新数据时间
+            type: Date,
+            default: () => {
+                return new Date();
+            },
+        },
+        stationShowTime: {
+            // 显示数据时间
+            type: Date,
+            default: () => {
+                return new Date();
+            },
+        },
+    },
+    watch: {
+        stationLiveTime(newVal) {
+            // 显示时间变动
+            if (newVal != null) {
+                this.stationLiveQuickSelect.time = newVal;
+            }
+        },
+    },
+    created() {
+        // 初始化界面之前获取数据
+        this.stationLiveQuickSelect.time = this.stationShowTime;
+        this.stationShowStyleChange_self();
+        this.getthreshold();
+    },
+    mounted() {
+        // 界面显示完成后调用方法
+        this.gridElement();
+    },
+    methods: {
+        //控制文本框只能输入数字
+        clearNoNum($event) {
+            //响应鼠标事件，允许左右方向键移动
+            if ($event.keyCode == 37 || $event.keyCode == 39) {
+                return;
+            }
+            var t = $event.target.value.charAt(0);
+            //先把非数字的都替换掉，除了数字和.
+            $event.target.value = $event.target.value.replace(/[^\d.]/g, "");
+            //必须保证第一个为数字而不是.
+            $event.target.value = $event.target.value.replace(/^\./g, "");
+            //保证只有出现一个.而没有多个.
+            $event.target.value = $event.target.value.replace(/\.{2,}/g, ".");
+            //保证.只出现一次，而不能出现两次以上
+            $event.target.value = $event.target.value
+                .replace(".", "$#$")
+                .replace(/\./g, "")
+                .replace("$#$", ".");
+            //如果第一位是负号，则允许添加   如果不允许添加负号 可以把这块注释掉
+            // if (t == '-') {
+            //     $event.target.value = '-' + $event.target.value;
+            // }
+        },
+        // 获取格点预报要素
+        gridElement() {
+            gridElement({
+                region: "BEKM",
+            }).then((res) => {
+                res.data.records.forEach((item) => {
+                    if (item.name.indexOf("降水") > -1) {
+                        this.wgyb.element["降水"].push({
+                            name: item.name,
+                            inter: item.inter,
+                            element: item.element,
+                        });
+                    } else if (item.name.indexOf("气温") > -1) {
+                        this.wgyb.element["温度"].push({
+                            name: item.name,
+                            inter: item.inter,
+                            element: item.element,
+                        });
+                    } else if (item.name.indexOf("能见度") > -1) {
+                        this.wgyb.element["能见度"].push({
+                            name: item.name,
+                            inter: item.inter,
+                            element: item.element,
+                        });
+                    } else if (item.name.indexOf("湿度") > -1) {
+                        this.wgyb.element["湿度"].push({
+                            name: item.name,
+                            inter: item.inter,
+                            element: item.element,
+                        });
+                    } else if (item.name.indexOf("风") > -1) {
+                        this.wgyb.element["风"].push({
+                            name: item.name,
+                            inter: item.inter,
+                            element: item.element,
+                        });
+                    }
+                });
+            });
+        },
+        initWgybInterVal() {
+            /*   console.log(this.wgyb.timeInterval); */
+            // 初始化网格预报 预报间隔的数据时间
+            this.wgyb.page = 0;
+            this.wgyb.pageIndex = 0;
+            if (this.wgyb.time != "") {
+                let startTime = new Date(
+                    this.wgyb.time.getTime() /*  +
+                        1000 * 60 * 60 * parseInt(this.wgyb.hour) */
+                );
+                let hour = 0;
+                let data = [];
+                let num = 0;
+                this.wgyb.times = [];
+
+                while (hour <= 240) {
+                    hour += this.wgyb.timeInterval;
+                    startTime = new Date(
+                        startTime.getTime() +
+                            1000 * 60 * 60 * this.wgyb.timeInterval
+                    );
+                    data.push(startTime);
+                    num++;
+                    if (num == 8) {
+                        num = 0;
+                        this.wgyb.times.push(data);
+                        data = [];
+                    }
+                }
+                if (num != 0) {
+                    this.wgyb.times.push(data);
+                }
+                this.changeHourYb()
+            }
+        },
+        wgybIntervalPage(num) {
+            this.wgyb.page += num;
+            if (this.wgyb.page < 0) {
+                this.wgyb.page = 0;
+            } else if (this.wgyb.page > this.wgyb.times.length - 1) {
+                this.wgyb.page = this.wgyb.times.length - 1;
+            }
+            this.wgyb.pageIndex = 0;
+        },
+        stationLiveQuickTimeChange(num) {
+            // 站点实况查询时间变动
+            if (num == -1) {
+                let time = new Date();
+                let m = time.getMinutes();
+                m = parseInt(m / 5) * 5;
+                this.stationLiveQuickSelect.time = new Date(time.setMinutes(m));
+            } else if (num == 0) {
+                let m = this.stationLiveQuickSelect.time.getMinutes();
+                m = parseInt(m / 5) * 5;
+                this.stationLiveQuickSelect.time = new Date(
+                    this.stationLiveQuickSelect.time.setMinutes(m)
+                );
+            } else {
+                this.stationLiveQuickSelect.time = new Date(
+                    this.stationLiveQuickSelect.time.getTime() + 1000 * 60 * num
+                );
+            }
+            if (
+                this.stationLiveQuickSelect.time.getTime() >
+                new Date().getTime()
+            ) {
+                this.stationLiveQuickTimeChange(-1);
+                return;
+            }
+            this.$emit(
+                "stationLiveTimeChange",
+                this.stationLiveQuickSelect.time
+            ); // 修改显示时间
+        },
+        NewTime() {
+            this.$emit("NewTime", true); // 修改显示时间
+            this.stationLiveQuickSelect.time = new Date()
+        },
+        NewTimewgsk(){
+              this.$emit("NewTimewgsk", true); // 修改显示时间
+        },
+        stationShowStyleChange_self(item1) {
+            // 站点实况查询显示内容变动
+            let obj = {};
+            this.mapLayer.forEach((item) => {
+                obj[item.key] = item.checked;
+            });
+
+            if (item1) {
+                this.stationLiveQuickSelect.elementTypes.forEach((item) => {
+                    if (item1.key == item.key) {
+                        item.val = item1.val;
+                    } else {
+                        item.val = null;
+                    }
+                });
+            }
+
+            this.stationLiveQuickSelect.elementTypes.forEach((item) => {
+                obj[item.key] =
+                    item.val == null
+                        ? null
+                        : this.stationLiveQuickSelect.element[item.name][
+                              item.val
+                          ];
+            });
+            this.$emit("stationShowStyleChange", obj);
+            this.$emit(
+                "stationLiveTimeChange",
+                this.stationLiveQuickSelect.time
+            ); // 修改显示时间
+        },
+        // 网格预报
+        stationShowStyleChange_my(item1, item) {
+            console.log(item);
+            let element = item.element;
+            this.wgyb.timeInterval = Number(item.inter);
+            this.initWgybInterVal();
+            this.wgyb.inter = item.inter;
+
+            if (item1) {
+                this.wgyb.elementTypes.forEach((it) => {
+                    if (item1.key == it.key) {
+                        it.val = item1.val;
+                    } else {
+                        it.val = null;
+                    }
+                });
+            } else {
+                this.wgyb.elementTypes = [
+                    { name: "降水", key: "val_yl", val: 0 },
+                    { name: "温度", key: "val_wd", val: null },
+                    { name: "风", key: "val_wind", val: null },
+                    { name: "能见度", key: "val_njd", val: null },
+                    { name: "湿度", key: "val_sd", val: null },
+                ];
+            }
+            getMaxTime({
+                element: element,
+                inter: this.wgyb.inter,
+            }).then((res) => {
+                if (res.data.state == 200) {
+                    this.wgyb.time = new Date(res.data.records);
+                    this.initWgybInterVal();
+                    this.getQbTimeGroup(item.element, item.inter);
+                    this.$emit("stationShowStyleChange_time", this.wgyb.time);
+                } else {
+                    this.wgyb.time = new Date();
+                    this.initWgybInterVal();
+                    this.getQbTimeGroup(item.element, item.inter);
+                    this.$emit("stationShowStyleChange_time", this.wgyb.time);
+                }
+            });
+
+            this.$emit("stationShowStyleChange_my", item);
+        },
+        stationShowStyleChange_Sk(item) {
+            //网格实况
+            if (item) {
+                this.wgsk.element.forEach((it) => {
+                    if (item.key == it.key) {
+                        it.val = item.val;
+                    } else {
+                        it.val = null;
+                    }
+                });
+            }
+            this.getMaxTimeSK(item.key);
+        },
+        // 网格实况填色填值
+        changeCheckboxSK() {
+            this.$emit(
+                "showTypeCheckedSK",
+                this.wgsk.showType[0].checked,
+                this.wgsk.showType[1].checked
+            );
+        },
+        // 网格预报填色填值
+        changeCheckboxYB() {
+            this.$emit(
+                "showTypeCheckedYB",
+                this.wgyb.showType[0].checked,
+                this.wgyb.showType[1].checked
+            );
+        },
+        initWgybInterVal_SK() {
+            let time = this.wgsk.time + this.wgsk.hour + "0000";
+            this.$emit("stationLiveTimeChangeSK", time);
+        },
+        changeHour() {
+            let time = this.wgsk.time + this.wgsk.hour + "0000";
+            this.$emit("stationLiveTimeChangeSK", time);
+        },
+        changeHourYb() {
+            switch (this.wgyb.hour) {
+                case 1:
+                    this.wgyb.hour = "01";
+                    break;
+                case 2:
+                    this.wgyb.hour = "02";
+                    break;
+                case 3:
+                    this.wgyb.hour = "03";
+                    break;
+                case 4:
+                    this.wgyb.hour = "04";
+                    break;
+                case 5:
+                    this.wgyb.hour = "05";
+                    break;
+                case 6:
+                    this.wgyb.hour = "06";
+                    break;
+                case 7:
+                    this.wgyb.hour = "07";
+                    break;
+                case 8:
+                    this.wgyb.hour = "08";
+                    break;
+                case 9:
+                    this.wgyb.hour = "09";
+                    break;
+
+                default:
+                    break;
+            }
+
+            let time =
+                parseTime(this.wgyb.time, "yyyy-MM-dd") +
+                " " +
+                this.wgyb.hour +
+                ":00:00";
+            this.$emit("stationLiveTimeChangeYB", time);
+        },
+        getthreshold() {
+            //获取实况阈值
+            service.post("/threshold/list").then((res) => {
+                if (res.data.s == 1) {
+                    res.data.d.forEach((item) => {
+                        item.value = item.threshold;
+                    });
+                    this.zdskYzszone = res.data.d;
+                    this.$emit('thresholdClick',this.zdskYzszone)
+                }
+            });
+        },
+        onInputBlur(id, value) {
+            //修改实况阈值
+            if (value == "") {
+                this.zdskYzszone.forEach((item) => {
+                    if (id == item.id) {
+                        item.value = item.threshold;
+                    }
+                });
+            } else {
+                service.post("/threshold/update", {
+                    id: id,
+                    threshold: value,
+                });
+            }
+        },
+        inityjxhInterVal() {
+            // 预警查询统计
+            this.yjxh.tableData = [];
+            this.yjxh.yujingjson = [];
+            this.loading = true;
+            let startTime = parseTime(this.yjxh.time[0]);
+            let endTime = parseTime(this.yjxh.time[1]);
+            getWarning({
+                startTime: startTime,
+                endTime: endTime,
+                adminCode: "5309",
+            }).then((res) => {
+                if (res.data.s == 1) {
+                    this.yjxh.tableData = res.data.d;
+                    var json = {
+                        暴雨蓝色: 0,
+                        暴雨黄色: 0,
+                        暴雨橙色: 0,
+                        暴雨红色: 0,
+                        暴雪蓝色: 0,
+                        暴雪黄色: 0,
+                        暴雪橙色: 0,
+                        暴雪红色: 0,
+                        冰雹蓝色: 0,
+                        冰雹黄色: 0,
+                        冰雹橙色: 0,
+                        冰雹红色: 0,
+                        赤潮蓝色: 0,
+                        赤潮黄色: 0,
+                        赤潮橙色: 0,
+                        赤潮红色: 0,
+                        大风蓝色: 0,
+                        大风黄色: 0,
+                        大风橙色: 0,
+                        大风红色: 0,
+                        大雾蓝色: 0,
+                        大雾黄色: 0,
+                        大雾橙色: 0,
+                        大雾红色: 0,
+                        道路结冰蓝色: 0,
+                        道路结冰黄色: 0,
+                        道路结冰橙色: 0,
+                        道路结冰红色: 0,
+                        地质灾害蓝色: 0,
+                        地质灾害黄色: 0,
+                        地质灾害橙色: 0,
+                        地质灾害红色: 0,
+                        地温黄色: 0,
+                        地温橙色: 0,
+                        地温红色: 0,
+                        风暴潮蓝色: 0,
+                        风暴潮黄色: 0,
+                        风暴潮橙色: 0,
+                        风暴潮红色: 0,
+                        干旱蓝色: 0,
+                        干旱黄色: 0,
+                        干旱橙色: 0,
+                        干旱红色: 0,
+                        高温蓝色: 0,
+                        高温黄色: 0,
+                        高温橙色: 0,
+                        高温红色: 0,
+                        海浪蓝色: 0,
+                        海浪黄色: 0,
+                        海浪橙色: 0,
+                        海浪红色: 0,
+                        海上大风蓝色: 0,
+                        海上大风黄色: 0,
+                        海上大风橙色: 0,
+                        海上大风红色: 0,
+                        雷雨大风蓝色: 0,
+                        雷雨大风黄色: 0,
+                        雷雨大风橙色: 0,
+                        雷雨大风红色: 0,
+                        霜冻蓝色: 0,
+                        霜冻黄色: 0,
+                        霜冻橙色: 0,
+                        霜冻红色: 0,
+                        台风蓝色: 0,
+                        台风黄色: 0,
+                        台风橙色: 0,
+                        台风红色: 0,
+                        霾蓝色: 0,
+                        霾黄色: 0,
+                        霾橙色: 0,
+                        霾红色: 0,
+                        雷电蓝色: 0,
+                        雷电黄色: 0,
+                        雷电橙色: 0,
+                        雷电红色: 0,
+                        寒潮蓝色: 0,
+                        寒潮黄色: 0,
+                        寒潮橙色: 0,
+                        寒潮红色: 0,
+                    };
+                    for (var key in json) {
+                        this.yjxh.tableData.map((item) => {
+                            if (item.signImg.split("预警")[0] == key) {
+                                json[key]++;
+                            }
+                        });
+                        if (json[key] != 0) {
+                            this.yjxh.yujingjson.push({
+                                name: key,
+                                num: json[key],
+                            });
+                        }
+                    }
+                    this.loading = false;
+                }
+            });
+        },
+        /* 获得最新预报格点预报时间 */
+        getMaxTime() {},
+        /* 获得最新格点实况时间 */
+        getMaxTimeSK(name) {
+            getMaxTimeSK({
+                element: name,
+            }).then((res) => {
+                this.wgsk.time =
+                    res.data.records.substring(0, 4) +
+                    res.data.records.substring(4, 6) +
+                    res.data.records.substring(6, 8);
+                this.wgsk.hour = res.data.records.substring(8, 10);
+                if (res.data.state == 200) {
+                    this.$emit(
+                        "stationShowStyleChange_Sk",
+                        res.data.records,
+                        name
+                    );
+                }
+            });
+        },
+        tabClick() {
+            this.$emit("tabSeletChange", this.activeName);
+            if (this.activeName == "网格预报") {
+                this.stationShowStyleChange_my(
+                    null,
+                    this.wgyb.element["降水"][0]
+                );
+                this.wgsk.showType[1].checked = false;
+            } else if (this.activeName == "网格实况") {
+                this.wgyb.showType[1].checked = false;
+                this.stationShowStyleChange_Sk({
+                    name: "降水",
+                    key: "ER01",
+                    val: 0,
+                });
+            } else {
+                this.wgsk.showType[1].checked = false;
+                this.wgyb.showType[1].checked = false;
+            }
+        },
+        timeBtnClick() {
+            this.wgyb.pageIndex + 1;
+            this.$emit("timeBtnClick", this.wgyb.pageIndex);
+        },
+
+        switchWind() {
+            // 风场开关
+            if (this.wgsk.isShow) {
+                this.getMaxTimeSK("uv");
+                this.$emit("switchWind", true);
+            } else {
+                this.$emit("switchWind", false);
+            }
+        },
+        resetWind() {
+            // 风场重置
+            for (var i in this.wgsk.paramsObj) {
+                this.wgsk.paramsObj[i].selectValue =
+                    this.wgsk.paramsObj[i].initValue;
+            }
+            this.reveiseFs();
+        },
+        reveiseFs() {
+            // 风场修改
+            this.$emit("reveiseFs", this.wgsk.paramsObj);
+            this.$emit("switchWind", true);
+        },
+        /* 网格预报所有发布时次查询 */
+        getQbTimeGroup(element, inter) {
+            let time;
+            this.wgyb.hourList = [];
+            getQbTimeGroup({
+                element: element,
+                type: "BEKM",
+                inter: inter,
+                time: parseTime(this.wgyb.time, "yyyy-MM-dd"),
+            }).then((res) => {
+                res.data.records.map((item) => {
+                    this.wgyb.hourList.push(new Date(item).getHours());
+                    if (
+                        parseTime(this.wgyb.time, "yyyy-MM-dd hh:mm:ss") == item
+                    ) {
+                        time = new Date(item).getHours();
+                    }
+                });
+                this.wgyb.hour = time;
+                this.changeHourYb();
+            });
+        },
+        // 经纬度查询
+        SeletLonlng() {
+            this.$emit("SeletLonlng", [this.wgsk.startLng, this.wgsk.endLng]);
+        },
+        // 经纬度查询
+        SeletLonlngYB() {
+            this.$emit("SeletLonlngYB", [this.wgyb.startLng, this.wgyb.endLng]);
+        },
+    },
+};
+</script>
+<style scoped>
+.mapLayerConfig {
+    margin-bottom: 10px;
+    height: calc(100% - 600px);
+    overflow: auto;
+}
+.rightConfigTitle {
+    background: #dcecff;
+    font-size: 16px;
+    color: #2d5a9d;
+    letter-spacing: 0;
+    text-align: justify;
+    line-height: 32px;
+    font-weight: 600;
+    height: 100%;
+}
+.rightConfigTitle >>> .el-tabs {
+    height: 100%;
+}
+.rightConfigTitle >>> .el-tabs__header {
+    margin: 0;
+    padding: 10px 10px 0;
+}
+.rightConfigTitle >>> .el-tabs__nav {
+    width: 100%;
+}
+.rightConfigTitle >>> .el-tabs__nav-wrap::after,
+.rightConfigTitle >>> .el-tabs__active-bar {
+    display: none;
+}
+.rightConfigTitle >>> .el-tabs__content {
+    height: calc(100% - 42px);
+    overflow: auto;
+    background: #fff;
+}
+.rightConfigTitle >>> .el-tabs__item {
+    padding: 0;
+    width: 25%;
+    text-align: center;
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+    height: 32px;
+    line-height: 32px;
+}
+
+.rightConfigTitle >>> .el-tabs__item.is-active {
+    background: #fff;
+    border-radius: 4px 4px 0 0;
+    color: #2d5a9d;
+}
+.rightConfigInfo {
+    background: #fff;
+    padding: 10px;
+    line-height: 1;
+}
+.rightConfigInfo >>> label {
+    width: 70px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.rightConfigInfo >>> .el-radio__label,
+.rightConfigInfo >>> .el-checkbox__label {
+    color: #333;
+    font-weight: 400;
+}
+
+.stationLiveQuickSearch {
+    background: #fff;
+    position: relative;
+    padding: 0 5px;
+    min-height: 112px;
+}
+.stationLiveQuickSearch >>> .el-table {
+    margin-top: 5px;
+}
+
+.stationLiveQuickSearch .searchTitle {
+    position: absolute;
+    top: 1px;
+    left: 5px;
+    width: 32px;
+    background: #dcecff;
+    bottom: 0;
+    padding: 0 1px;
+    text-align: center;
+    min-height: 112px;
+}
+.stationLiveQuickSearch >>> .el-collapse-item__header {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    line-height: 30px;
+    background-color: #dcecff;
+    color: #2d5a9d;
+    cursor: pointer;
+    border-bottom: 1px solid #ebeef5;
+    font-size: 16px;
+    font-weight: 500;
+    transition: border-bottom-color 0.3s;
+    outline: 0;
+    padding-left: 20px;
+}
+
+.stationLiveQuickSearch .searchTitle p {
+    font-weight: 400;
+    line-height: 1.2;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+}
+
+.stationLiveQuickSearch >>> .el-form-item.el-form-item--small {
+    margin-bottom: 5px;
+}
+
+.stationLiveQuickSearch >>> form {
+    border-top: 1px solid #f5f6f7;
+    overflow: auto;
+    padding: 10px 0;
+    padding-left: 42px;
+}
+.stationLiveQuickSearch >>> .el-table--small .el-table__cell {
+    padding: 0;
+}
+
+.stationLiveQuickSearch >>> .elementBtn {
+    min-width: 70px;
+    margin-left: 5px;
+    margin-bottom: 5px;
+    font-size: 16px;
+    padding: 6px 6px;
+}
+.stationLiveQuickSearch >>> .elementBtn.elementBtnBig {
+    width: 85px;
+}
+
+.stationLiveQuickSearch >>> .timeInput {
+    width: 190px;
+    margin-left: 5px;
+    height: 30px;
+    vertical-align: middle;
+    margin-top: -4px;
+}
+
+.stationLiveQuickSearch >>> .timeInput input {
+    height: 30px;
+    line-height: 30px;
+}
+
+.stationLiveQuickSearch >>> .timeLeft,
+.stationLiveQuickSearch >>> .timeRight {
+    width: 20px;
+    margin-left: 5px;
+    margin-right: 0;
+    font-size: 16px;
+    padding: 6px 0;
+    vertical-align: middle;
+    height: 30px;
+}
+
+.stationLiveQuickSearch >>> .timeNew {
+    width: 50px;
+    margin-left: 5px;
+    font-size: 16px;
+    padding: 6px 0;
+    vertical-align: middle;
+}
+
+.stationLiveQuickSearch >>> label.el-form-item__label {
+    font-weight: 400;
+    color: #333;
+    padding-right: 0;
+}
+.timeSelectBox {
+    color: #333;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+.timeSelectBox >>> .el-range-separator {
+    padding: 0 16px !important;
+}
+.timeSelectBox > * {
+    margin-right: 8px;
+    margin-bottom: 10px;
+}
+
+.yubaojiange ul {
+    margin: 0;
+    list-style: none;
+    display: inline-block;
+    vertical-align: middle;
+    border: 1px solid #dfe2e4;
+    border-radius: 4px;
+    padding: 5px;
+    margin-left: 8px;
+}
+
+.yubaojiange ul li {
+    display: inline-block;
+    width: 56px;
+    height: 24px;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 24px;
+    color: #333;
+    cursor: pointer;
+}
+
+.yubaojiange ul li.active {
+    background: #3e87f4;
+    color: #fff;
+}
+
+.yubaojiange {
+    margin: 10px 0;
+    color: #333;
+}
+
+.wgybDayHour ul {
+    padding: 0;
+    margin: 0;
+    display: inline-block;
+    list-style: none;
+    width: 288px;
+}
+
+.wgybDayHour ul li {
+    display: inline-block;
+    margin: 0 2px;
+    cursor: pointer;
+}
+
+.wgybDayHour ul li .timeDay {
+    display: block;
+    border-left: 1px solid #adb3bb;
+    font-size: 12px !important;
+    color: #5b707f;
+    line-height: 16px;
+    font-weight: 400;
+    text-align: center;
+}
+
+.wgybDayHour ul li .timeHour {
+    color: #5b707f;
+    letter-spacing: 0;
+    text-align: justify;
+    line-height: 24px;
+    font-weight: 400;
+    width: 32px;
+    height: 24px;
+    background: #ebeef1;
+    border-radius: 4px;
+    display: block;
+    text-align: center;
+}
+.wgybDayHour ul li.active .timeHour {
+    background: #3e87f4;
+    color: #fff;
+}
+
+.wgybDayHour > span {
+    text-align: center;
+    display: inline-block;
+    position: relative;
+    padding-top: 20px;
+    color: #333333;
+    font-weight: 400;
+    margin: 0 10px;
+    cursor: pointer;
+}
+
+.wgybDayHour > span i {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.wgybDayHour {
+    user-select: none;
+}
+.botton > button {
+    width: 55px;
+    height: 27px;
+    border-radius: 3px;
+    background: transparent;
+    color: #fff;
+    border: 1px solid #fff;
+    margin-top: 13px;
+    cursor: pointer;
+}
+.botton > button:nth-child(1) {
+    margin-right: 10px;
+}
+.botton > button:nth-child(1) {
+    background: #099d09;
+}
+.botton > button:nth-child(2) {
+    background: #ff8000;
+}
+.fs {
+    padding-left: 10px;
+}
+.el-switch {
+    vertical-align: sub;
+    padding-left: 10px;
+}
+</style>

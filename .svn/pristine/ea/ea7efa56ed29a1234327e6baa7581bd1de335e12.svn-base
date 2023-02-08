@@ -1,0 +1,101 @@
+<template>
+    <div class="txtProduct">
+        <!-- 所有产品列表 -->
+        <div class="txtLeft">
+            <router-link
+                v-for="p in productList"
+                :key="p.id"
+                active-class="active"
+                :to="{ name: p.url }"
+                >{{ p.name }}
+                <span>{{p.time}}</span>
+            </router-link>
+        </div>
+        <!-- 产品制作部分 -->
+        <div class="txtRight">
+            <router-view></router-view>
+        </div>
+    </div>
+</template>
+
+<script>
+export default {
+    name: "TxtProduct",
+    data() {
+        return {
+            selectIndex: 1,
+            productList: [
+                { id: 1, name: "未来24小时城市天气预报", url: "Forecast24City",time: "每天16:00前制作" },
+                { id: 2, name: "未来24小时临沧市乡镇预报", url: "Forecast24County",time: "每天16:00前制作" },
+                { id: 3, name: "周末天气预报", url: "ForecastWeekend",time: "每周四9:30制作" },
+                { id: 4, name: "未来一周天气预报", url: "ForecastOneWeek",time: "每周日9:30制作" },
+                { id: 5, name: "未来7天天气预报", url: "Forecast7Day",time: "每周一16时制作" },
+                { id: 6, name: "实况通报信息", url: "LiveNotification" },
+                { id: 8, name: "主持人稿件", url: "SupporterManuscripts",time: "每天9:30前上传"},
+                { id: 7, name: "临沧早8点预报图", url: "Early8Forecast",time: "每天17:30前制作"},
+            ],
+        }
+    },
+    created() {
+        let user = JSON.parse(localStorage.getItem("lcqxfzjz"))
+        if(user.roleInfo.id==2){//科服
+            this.productList = [
+                { id: 1, name: "未来24小时城市天气预报", url: "Forecast24City" },
+                { id: 2, name: "未来24小时临沧市乡镇预报", url: "Forecast24County" },
+                { id: 3, name: "周末天气预报", url: "ForecastWeekend" },
+                { id: 4, name: "未来一周天气预报", url: "ForecastOneWeek" },
+                { id: 5, name: "未来7天天气预报", url: "Forecast7Day" },
+                { id: 6, name: "实况通报信息", url: "LiveNotification" },
+                { id: 8, name: "主持人稿件", url: "SupporterManuscripts",time: "每天9:30前制作"},
+                { id: 7, name: "临沧早8点预报图", url: "Early8Forecast",time: "每天17:30前制作"},
+            ]
+        }else if(user.roleInfo.id==4){//县区局
+            this.productList = [
+                { id: 2, name: "未来24小时乡镇预报", url: "Forecast24County" },
+            ]
+        }
+        this.$router.push("/txtProduct/forecast24City")
+    },
+    methods: {
+
+    },
+};
+</script>
+
+<style lang="less" scoped>
+.txtProduct {
+    display: flex;
+    height: 100%;
+    .txtLeft {
+        height: 100%;
+        color: #333;
+        width: 350px;
+        border-right: 1px solid #adb3bb;
+        a {
+            text-decoration: none;
+            color: #606266;
+            width: 100%;
+            display: block;
+            padding: 20px;
+            border-bottom: 1px solid #ebeef5;
+            position: relative;
+            &>span{
+                position: absolute;
+                bottom: 0;
+                right: 5px;
+                font-size: 12px;
+            }
+        }
+        a.active {
+            background: #dcecff;
+            font-weight: bold;
+            color: #2d5a9d;
+        }
+    }
+    .txtRight {
+        flex: 1;
+        height: 100%;
+        background: #f5f6f7;
+    }
+}
+</style>

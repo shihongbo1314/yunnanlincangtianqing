@@ -1,0 +1,304 @@
+<template>
+  <div class="menu_index" style="width:100%; height:100%">
+    <!-- 左侧 -->
+    <div id="left">
+
+        <!-- 左侧顶部 -->
+        <div id="leftTop">
+          <!-- 显示范围 -->
+          <addr :addrListShow.sync="addrListShow"/>
+
+          <!-- 雷达、自动站 -->
+          <radarMarker 
+            :map="map"
+            :mapImageLayerTypeName="mapImageLayerTypeName"
+            :mapImageLayerTypeNameChanege='mapImageLayerTypeNameChanege'
+            :stationLiveTime="stationLiveTime"
+            :stationShowTime="stationShowTime"
+            :stationShowTimeChange="stationShowTimeChange"
+            :stationShowStyle="stationShowStyle"
+            :stationShowStyleChange="stationShowStyleChange"
+
+            :raderShow="raderShow"
+            :raderShowChange="raderShowChange"
+            :raderLiveTime="raderLiveTime"
+            :raderShowTime="raderShowTime"
+            :raderShowTimeChange="raderShowTimeChange"
+           />
+        </div>
+
+        <!-- 左侧中间 -->
+        <div id="leftMain" :class="leftMainLeftShow?'':'leftMainLeftShow'">
+
+          <!-- 左侧中间左侧窗口 -->
+          <div id="leftMainLeft" v-if="leftMainLeftShow">
+            <messageAlert/>
+          </div>
+          <el-button class="leftMainLeftShowBtn" @click="leftMainLeftShow = !leftMainLeftShow" :icon="leftMainLeftShow ? 'el-icon-caret-left' : 'el-icon-caret-right'"></el-button>
+
+          <!-- 左侧中间右侧主要内容 -->
+          <div id="leftMainRight">
+            <div id="map" ref="map" style="width: 100%; height: 100%; background:#fff; z-index:1;"></div>
+            <mapLegend 
+              :mapImageLayerTypeName="mapImageLayerTypeName" 
+              :raderShow="raderShow"
+            />
+            <mapInfo v-show="riskInfoShow" :riskNum="riskNum"/>
+          </div>
+
+          <!-- 弹框 -->
+          <div id="addrListBox" v-show="addrListShow">
+            <p><i class="el-icon-close" @click="addrListShow = false"></i></p>
+            <addrList :map="map" v-if="map"/>
+          </div>
+        </div>
+    </div>
+
+    <!-- 右侧 -->
+    <div id="right">
+      <mapLayer :map="map" v-if="map" />
+      <mapDataOne 
+        style="height: calc(100% - 168px); overflow: auto;" 
+        :stationLiveTime="stationLiveTime"
+        :stationLiveTimeChange="stationLiveTimeChange"
+        :stationShowTime="stationShowTime"
+        :stationShowStyle="stationShowStyle"
+        :stationShowStyleChange="stationShowStyleChange"  
+      />
+    </div>
+  </div>
+</template>
+
+<script>
+// @ is an alias to /src
+import 'leaflet/dist/leaflet.css'
+import * as L from 'leaflet'
+import addr from "../components/index/addr.vue"
+import addrList from "../components/index/addrList.vue"
+import radarMarker from "../components/index/radarMarker.vue"
+import mapLayer from "../components/index/mapLayer.vue"
+import mapDataOne from "../components/index/mapDataOne.vue"
+import messageAlert from "../components/index/messageAlert1.vue"
+import mapLegend from "../components/index/mapLegend.vue"
+import mapInfo from "../components/index/mapInfo.vue"
+
+
+export default {
+  components:{
+    addr,radarMarker,mapLayer,mapDataOne,messageAlert,mapLegend,mapInfo,addrList
+  },
+  data(){
+    return{
+        mapImageLayerTypeName : null, // 地图上叠加显示图片类型名称，各组件通过监测这个名称变动，关闭当前组件内容显示的开关
+        leftMainLeftShow : true,
+        mapMarkerBox : ["闪电", "火点监控"],
+        map : null,
+        stationLiveTime : new Date('2022/03/16 14:55:00'),// 站点实况最新数据时间
+        stationShowTime : new Date('2022/03/16 14:55:00'), // 站点实况默认显示时间
+        stationShowStyle : null, // 站点的显示方式
+        stationShow : false,
+
+        raderLiveTime : new Date('2022/07/01 14:55:00'),// 雷达图最新数据时间
+        raderShowTime : new Date('2022/07/01 14:55:00'), // 雷达图默认显示时间
+        raderShow : true,
+
+        riskInfoShow: false,//右上角摄像头信息的显隐
+        riskNum: [0,0,0,0,0,0],
+
+        addrListShow: false, 
+        imgSrc: null
+    }
+  },
+  created(){
+    // 初始化界面之前获取数据
+   // this.initMap();
+  },
+  mounted(){
+    this.initMap();
+  },
+  methods: {
+      initMap (){// 初始化网格预报 预报间隔的数据时间
+        this.map = L.map(this.$refs["map"], {
+            center: [25.03284, 100.546904], // 地图中心
+            zoom: 8, //缩放比列
+            zoomControl: false, //禁用 + - 按钮
+            doubleClickZoom: false, // 禁用双击放大
+            attributionControl: false, // 移除右下角leaflet标识
+            zoomSnap: 0.01
+        });
+        this.map.fitBounds([[ 25.03284, 100.546904], [23.073182, 98.668863]]);
+      },
+      mapImageLayerTypeNameChanege(val){
+        this.mapImageLayerTypeName = val;
+      },
+      stationShowTimeChange(val){
+        this.stationShowTime = val;
+      },
+      stationLiveTimeChange(val){
+        this.stationLiveTime = val;
+      },
+      raderShowTimeChange(val){
+        this.raderShowTime = val;
+      },
+      stationShowStyleChange(val){
+        this.stationShowStyle = JSON.parse(JSON.stringify(val));
+      },
+      raderShowChange(val){
+        this.raderShow = val;
+      },
+      riskControl(val){
+        this.riskInfoShow = val;
+      },
+      riskNumber(val){
+        this.riskNum = val
+      }
+  }
+}
+</script>
+<style scoped>
+#left{
+  width: calc(100% - 430px);
+  height: 100%;
+  overflow: hidden;
+  display: inline-block;
+}
+#right{
+  width: 430px;
+  height: 100%;
+  overflow: auto;
+  display: inline-block;
+  background: #F5F6F7;
+}
+#leftTop {
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+  border-bottom: 1px solid #ADB3BB;
+}
+#leftMain{
+  width: 100%;
+  height: calc(100% - 60px);
+  overflow: hidden;
+  display: inline-block;
+  position: relative;
+}
+#leftMainLeft{
+  width: 350px;
+  height: 100%;
+  overflow: auto;
+  display: inline-block;
+}
+#leftMainRight{
+  width: calc(100% - 350px);
+  height: 100%;
+  overflow: hidden;
+  display: inline-block;
+  border-right: 1px solid #ADB3BB;
+  border-left: 1px solid #ADB3BB;
+  position: relative;
+}
+.leftMainLeftShowBtn {
+    position: absolute;
+    top: 20%;
+    left: 351px;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    width: 20px;
+    padding: 10px 0;
+    border-color: #ADB3BB;
+}
+#leftMain.leftMainLeftShow .leftMainLeftShowBtn{
+  left:0;
+}
+#leftMain.leftMainLeftShow #leftMainRight{
+  border-left: none;
+  width: 100%;
+}
+
+
+#leftTop > div{
+  border-right: 1px solid #ADB3BB;
+    height: 100%;
+    display: inline-block;
+    vertical-align: top;
+}
+#leftTop .mapMarkerBox {
+  width: 215px;
+}
+#leftTop .mapMarkerBox >>> label{
+  width: 50%;
+  display: inline-block;
+  margin: 0;
+  padding: 4px 0 4px 10px;
+}
+#leftTop >>> .radarMarker{
+  width: calc(100% - 215px);
+}
+#map >>> .mapProvinceName{
+  color: #aaa;
+  font-size: 18px;
+}
+#map >>> .mapCountyName{
+  color: #ccc;
+  font-size: 12px;
+}
+#map >>> .mapCityName {
+    color: #3e87f4;
+}
+
+#map >>> .mapCityName span {
+    font-size: 14px !important;
+    position: absolute;
+    top: 50%;
+    white-space: nowrap;
+    left: 50%;
+    transform: translate(-50%, -18px);
+}
+
+#map >>> .mapCityName:before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: #3e87f4;
+    width: 4px;
+    height: 4px;
+    border-radius: 99px;
+}
+#leftMainRight >>> .legend{
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 2;
+}
+#leftMainRight >>> .info{
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 2;
+}
+
+/**切换城市弹框 */
+#addrListBox{
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: #fff;
+  width: 350px;
+  z-index: 9999;
+  box-shadow: 0 10px 10px -10px #aaa;
+}
+#addrListBox>p{
+  margin:0;
+  background:#DCECFF;
+  text-align: right;
+  padding: 3px 10px;
+  font-size: 20px;
+}
+#addrListBox>p>i{
+  cursor: pointer;
+}
+#addrListBox>p>i:hover{
+  color: #3e87f4;
+}
+</style>
